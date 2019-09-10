@@ -17,6 +17,7 @@ namespace Rhisis.Core.Resources
         public const string ExpTables = nameof(ExpTableLoader);
         public const string PenalityData = nameof(PenalityLoader);
         public const string Npcs = nameof(NpcLoader);
+        public const string Quests = nameof(QuestLoader);
 
         public class Errors
         {
