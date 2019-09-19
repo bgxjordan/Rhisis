@@ -47,5 +47,14 @@ namespace Rhisis.Core.Resources
             public static readonly string ExpTablePath = Path.Combine(DataSub0Path, "expTable.inc");
             public static readonly string DeathPenalityPath = Path.Combine(ResourcePath, "deathPenality.json");
         }
+
+        public class QuestInstructions
+        {
+            public const string SetTitle = "SetTitle";
+            public const string SetCharacter = "SetCharacter";
+            public const string SetEndCharacter = "SetEndCondCharacter";
+            public const string SetBeginLevel = "SetBeginCondLevel";
+            public const string SetBeginPreviousQuest = "SetBeginCondPreviousQuest";
+        }
     }
 }

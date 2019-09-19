@@ -28,6 +28,12 @@ namespace Rhisis.Core.Structures.Game.Dialogs
         public IList<string> Texts { get; set; }
 
         /// <summary>
+        /// Gets or sets the link quest id.
+        /// </summary>
+        [IgnoreDataMember]
+        public int QuestId { get; set; }
+
+        /// <summary>
         /// Create an empty <see cref="DialogLink"/> instance.
         /// </summary>
         public DialogLink()
