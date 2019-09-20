@@ -1,4 +1,5 @@
 ﻿using Rhisis.Core.Structures.Game.Dialogs;
+using System.Collections.Generic;
 
 namespace Rhisis.Core.Structures.Game.Quests
 {
@@ -26,6 +27,21 @@ namespace Rhisis.Core.Structures.Game.Quests
         /// Gets the quest link.
         /// </summary>
         public DialogLink Link { get; internal set; }
+
+        /// <summary>
+        /// Gets the quest begin texts.
+        /// </summary>
+        public IEnumerable<string> BeginTexts { get; internal set; }
+
+        /// <summary>
+        /// Gets the quest text when the player accepts the quest.
+        /// </summary>
+        public string AcceptedText { get; internal set; }
+
+        /// <summary>
+        /// Gets the quest text when the player declines the quest.
+        /// </summary>
+        public string DeclineText { get; internal set; }
 
         /// <summary>
         /// Gets the quest start character.

@@ -68,6 +68,7 @@ namespace Rhisis.World
                 typeof(JobLoader),
                 typeof(ExpTableLoader),
                 typeof(PenalityLoader),
+                typeof(QuestLoader),
                 typeof(NpcLoader));
 
             this._chatCommandManager.Load();

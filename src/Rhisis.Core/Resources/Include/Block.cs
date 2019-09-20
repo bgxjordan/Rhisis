@@ -6,7 +6,6 @@ namespace Rhisis.Core.Resources.Include
 {
     public class Block : IStatement, IDisposable
     {
-        private readonly char[] EscapeCharacters = new[] { '"' };
         private readonly ICollection<IStatement> _statements;
         private readonly ICollection<string> _unknownStatements;
 
@@ -91,17 +90,7 @@ namespace Rhisis.Core.Resources.Include
                 return default;
             }
 
-            if (parameterIndex < 0 || parameterIndex >= instruction.Parameters.Count)
-            {
-                throw new ArgumentOutOfRangeException(nameof(parameterIndex), "The instruction parameter index is out of range.");
-            }
-
-            object parameter = instruction.Parameters.ElementAtOrDefault(parameterIndex);
-
-            if (parameter is string)
-                parameter = parameter.ToString().Trim(this.EscapeCharacters);
-
-            return (T)Convert.ChangeType(parameter, typeof(T));
+            return instruction.GetParameter<T>(parameterIndex);
         }
 
         /// <summary>

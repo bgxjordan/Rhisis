@@ -4,7 +4,6 @@ using Rhisis.Core.Extensions;
 using Rhisis.Core.Resources.Include;
 using Rhisis.Core.Structures.Game.Dialogs;
 using Rhisis.Core.Structures.Game.Quests;
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -67,9 +66,9 @@ namespace Rhisis.Core.Resources.Loaders
                             this.LoadQuestDialogs(quest, currentQuestBlock);
 
                             quests.TryAdd(quest.Id, quest);
-                        }                        
 
-                        questsLoaded++;
+                            questsLoaded++;
+                        }                        
                     }
                 }
             }
@@ -142,10 +141,41 @@ namespace Rhisis.Core.Resources.Loaders
         /// <param name="questBlock">Current quest block.</param>
         private void LoadQuestDialogs(QuestData quest, Block questBlock)
         {
-            quest.Link = new DialogLink(QuestStateType.Suggest.ToString(), quest.Title)
+            quest.Link = new DialogLink(QuestStateType.Suggest.ToString(), quest.Title, quest.Id);
+
+            IEnumerable<Instruction> dialogInstructions = questBlock.Statements.Where(x => x.Name.Equals("SetDialog")).Cast<Instruction>();
+
+            if (dialogInstructions.Any())
             {
-                QuestId = quest.Id
-            };
+                var beginTexts = new string[5];
+
+                foreach (Instruction instruction in dialogInstructions)
+                {
+                    string dialogSayId = instruction.GetParameter<string>(0);
+                    string dialogTextId = instruction.GetParameter<string>(1);
+
+                    if (!this._defines.TryGetValue(dialogSayId, out int dialogSayIndex))
+                        dialogSayIndex = int.Parse(dialogSayId);
+
+                    if (!this._texts.TryGetValue(dialogTextId, out string dialogText))
+                        dialogText = dialogTextId;
+
+                    if (dialogSayIndex >= 0 && dialogSayIndex <= 4)
+                    {
+                        beginTexts[dialogSayIndex] = dialogText;
+                    }
+                    else if (dialogSayIndex == 5)
+                    {
+                        quest.AcceptedText = dialogText;
+                    }
+                    else if (dialogSayIndex == 6)
+                    {
+                        quest.DeclineText = dialogText;
+                    }
+                }
+
+                quest.BeginTexts = beginTexts.Where(x => x != null);
+            }
         }
     }
 }
