@@ -148,11 +148,13 @@ namespace Rhisis.Core.Resources.Loaders
             if (dialogInstructions.Any())
             {
                 var beginTexts = new string[5];
+                var endCompleteTexts = new string[3];
+                var endFailureTexts = new string[3];
 
                 foreach (Instruction instruction in dialogInstructions)
                 {
-                    string dialogSayId = instruction.GetParameter<string>(0);
-                    string dialogTextId = instruction.GetParameter<string>(1);
+                    string dialogSayId = instruction.GetParameter<string>(parameterIndex: 0);
+                    string dialogTextId = instruction.GetParameter<string>(parameterIndex: 1);
 
                     if (!this._defines.TryGetValue(dialogSayId, out int dialogSayIndex))
                         dialogSayIndex = int.Parse(dialogSayId);
@@ -160,21 +162,31 @@ namespace Rhisis.Core.Resources.Loaders
                     if (!this._texts.TryGetValue(dialogTextId, out string dialogText))
                         dialogText = dialogTextId;
 
-                    if (dialogSayIndex >= 0 && dialogSayIndex <= 4)
+                    if (dialogSayIndex >= QuestDialogStateType.Begin1 && dialogSayIndex <= QuestDialogStateType.Begin5)
                     {
                         beginTexts[dialogSayIndex] = dialogText;
                     }
-                    else if (dialogSayIndex == 5)
+                    else if (dialogSayIndex == QuestDialogStateType.BeginYes)
                     {
                         quest.AcceptedText = dialogText;
                     }
-                    else if (dialogSayIndex == 6)
+                    else if (dialogSayIndex == QuestDialogStateType.BeginNo)
                     {
                         quest.DeclineText = dialogText;
+                    }
+                    else if (dialogSayIndex >= QuestDialogStateType.EndComplete1 && dialogSayIndex <= QuestDialogStateType.EndComplete3)
+                    {
+                        endCompleteTexts[dialogSayIndex - QuestDialogStateType.EndComplete1] = dialogText;
+                    }
+                    else if (dialogSayIndex >= QuestDialogStateType.EndFailure1 && dialogSayIndex <= QuestDialogStateType.EndFailure3)
+                    {
+                        endFailureTexts[dialogSayIndex - QuestDialogStateType.EndFailure1] = dialogText;
                     }
                 }
 
                 quest.BeginTexts = beginTexts.Where(x => x != null);
+                quest.EndCompleteTexts = endCompleteTexts.Where(x => x != null);
+                quest.EndFailureTexts = endFailureTexts.Where(x => x != null);
             }
         }
     }

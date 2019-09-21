@@ -34,6 +34,16 @@ namespace Rhisis.Core.Structures.Game.Quests
         public IEnumerable<string> BeginTexts { get; internal set; }
 
         /// <summary>
+        /// Gets the quest end texts when the quest is completed.
+        /// </summary>
+        public IEnumerable<string> EndCompleteTexts { get; internal set; }
+
+        /// <summary>
+        /// Gets the quest end texts when the quest is not completed.
+        /// </summary>
+        public IEnumerable<string> EndFailureTexts { get; internal set; }
+
+        /// <summary>
         /// Gets the quest text when the player accepts the quest.
         /// </summary>
         public string AcceptedText { get; internal set; }
