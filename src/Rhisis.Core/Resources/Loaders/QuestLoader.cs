@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Rhisis.Core.Data;
 using Rhisis.Core.Extensions;
 using Rhisis.Core.Resources.Include;
 using Rhisis.Core.Structures.Game.Dialogs;
@@ -131,6 +132,13 @@ namespace Rhisis.Core.Resources.Loaders
             if (!string.IsNullOrEmpty(previousQuestId) && this._defines.TryGetValue(previousQuestId, out int questId))
             {
                 quest.PreviousQuestId = questId;
+            }
+
+            Instruction setBeginJobInstruction = questSettingsBlock.GetInstruction(GameResourcesConstants.QuestInstructions.SetBeginJob);
+
+            if (setBeginJobInstruction != null)
+            {
+                quest.Jobs = setBeginJobInstruction.Parameters.Select(x => x.ToString().ToEnum<DefineJob.Job>());
             }
         }
 

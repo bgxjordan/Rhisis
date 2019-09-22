@@ -7,6 +7,7 @@
         BeginYes,
         BeginNo,
         End,
-        EndCompleted
+        EndCompleted,
+        Ok
     }
 }

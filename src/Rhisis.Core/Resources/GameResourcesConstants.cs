@@ -55,6 +55,7 @@ namespace Rhisis.Core.Resources
             public const string SetEndCharacter = "SetEndCondCharacter";
             public const string SetBeginLevel = "SetBeginCondLevel";
             public const string SetBeginPreviousQuest = "SetBeginCondPreviousQuest";
+            public const string SetBeginJob = "SetBeginCondJob";
         }
     }
 }

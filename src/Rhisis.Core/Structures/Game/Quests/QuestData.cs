@@ -1,4 +1,5 @@
-﻿using Rhisis.Core.Structures.Game.Dialogs;
+﻿using Rhisis.Core.Data;
+using Rhisis.Core.Structures.Game.Dialogs;
 using System.Collections.Generic;
 
 namespace Rhisis.Core.Structures.Game.Quests
@@ -82,6 +83,11 @@ namespace Rhisis.Core.Structures.Game.Quests
         /// Gets the quest id of the previous quest.
         /// </summary>
         public int PreviousQuestId { get; internal set; }
+
+        /// <summary>
+        /// Gets a collection of the jobs that can start the quest.
+        /// </summary>
+        public IEnumerable<DefineJob.Job> Jobs { get; internal set; }
 
         /// <summary>
         /// Creates a new <see cref="QuestData"/> instance.
