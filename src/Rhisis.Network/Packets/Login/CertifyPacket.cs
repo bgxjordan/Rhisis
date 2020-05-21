@@ -1,4 +1,4 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 using Microsoft.Extensions.Options;
 using Rhisis.Core.Cryptography;
 using Rhisis.Core.Structures.Configuration;
@@ -17,25 +17,25 @@ namespace Rhisis.Network.Packets.Login
 
         public CertifyPacket(IOptions<LoginConfiguration> loginConfiguration)
         {
-            this._configuration = loginConfiguration.Value;
+            _configuration = loginConfiguration.Value;
         }
 
         public void Deserialize(INetPacketStream packet)
         {
-            this.BuildVersion = packet.Read<string>();
-            this.Username = packet.Read<string>();
-            this.Password = null;
+            BuildVersion = packet.Read<string>();
+            Username = packet.Read<string>();
+            Password = null;
 
-            if (this._configuration.PasswordEncryption)
+            if (_configuration.PasswordEncryption)
             {
-                byte[] encryptedPassword = packet.ReadArray<byte>(16 * 42);
-                byte[] encryptionKey = Aes.BuildEncryptionKeyFromString(this._configuration.EncryptionKey, 16);
+                byte[] encryptedPassword = packet.Read<byte>(16 * 42);
+                byte[] encryptionKey = Aes.BuildEncryptionKeyFromString(_configuration.EncryptionKey, 16);
 
-                this.Password = Aes.DecryptByteArray(encryptedPassword, encryptionKey);
+                Password = Aes.DecryptByteArray(encryptedPassword, encryptionKey);
             }
             else
             {
-                this.Password = packet.Read<string>();
+                Password = packet.Read<string>();
             }
         }
     }

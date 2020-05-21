@@ -1,10 +1,7 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.World
 {
-    /// <summary>
-    /// Defines the <see cref="MoveItemPacket"/> structure.
-    /// </summary>
     public class MoveItemPacket : IPacketDeserializer
     {
         /// <summary>
@@ -25,9 +22,9 @@ namespace Rhisis.Network.Packets.World
         /// <inheritdoc />
         public void Deserialize(INetPacketStream packet)
         {
-            this.ItemType = packet.Read<byte>();
-            this.SourceSlot = packet.Read<byte>();
-            this.DestinationSlot = packet.Read<byte>();
+            ItemType = packet.Read<byte>();
+            SourceSlot = packet.Read<byte>();
+            DestinationSlot = packet.Read<byte>();
         }
     }
 }

@@ -3,7 +3,6 @@ using McMaster.Extensions.CommandLineUtils;
 using Rhisis.Core.Helpers;
 using Rhisis.Core.Structures.Configuration;
 using Rhisis.Database;
-using Rhisis.Database.Context;
 
 namespace Rhisis.CLI.Commands.Database
 {
@@ -27,7 +26,7 @@ namespace Rhisis.CLI.Commands.Database
         /// <param name="databaseFactory">Database factory.</param>
         public DatabaseUpdateCommand(DatabaseFactory databaseFactory)
         {
-            this._databaseFactory = databaseFactory;
+            _databaseFactory = databaseFactory;
         }
 
         /// <summary>
@@ -37,25 +36,31 @@ namespace Rhisis.CLI.Commands.Database
         {
             try
             {
-                if (string.IsNullOrEmpty(this.DatabaseConfigurationFile))
-                    this.DatabaseConfigurationFile = ConfigurationConstants.DatabasePath;
-
-                DatabaseConfiguration dbConfig = ConfigurationHelper.Load<DatabaseConfiguration>(DatabaseConfigurationFile);
-
-                using (IDatabase database = this._databaseFactory.GetDatabase(dbConfig))
+                if (string.IsNullOrEmpty(DatabaseConfigurationFile))
                 {
-                    Console.WriteLine("Starting database structure update...");
-                    DatabaseContext rhisisDbContext = database.DatabaseContext;
+                    DatabaseConfigurationFile = ConfigurationConstants.DatabasePath;
+                }
 
-                    if (rhisisDbContext.DatabaseExists())
-                    {
-                        rhisisDbContext.Migrate();
-                        Console.WriteLine("Database updated.");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Database does not exist yet!");
-                    }
+                DatabaseConfiguration dbConfig = ConfigurationHelper.Load<DatabaseConfiguration>(DatabaseConfigurationFile, ConfigurationConstants.DatabaseConfiguration);
+                
+                if (dbConfig is null)
+                {
+                    Console.WriteLine("Couldn't load database configuration file during execution of update command.");
+                    return;
+                }
+
+                using IRhisisDatabase database = _databaseFactory.CreateDatabaseInstance(dbConfig);
+                
+                Console.WriteLine("Starting database structure update...");
+
+                if (database.Exists())
+                {
+                    database.Migrate();
+                    Console.WriteLine("Database updated.");
+                }
+                else
+                {
+                    Console.WriteLine("Database does not exist yet!");
                 }
             }
             catch (Exception e)

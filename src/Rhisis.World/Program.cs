@@ -1,5 +1,4 @@
-﻿using Ether.Network.Packets;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -11,10 +10,11 @@ using Rhisis.Core.Structures.Configuration;
 using Rhisis.Core.Structures.Configuration.World;
 using Rhisis.Database;
 using Rhisis.Network.Packets;
-using Rhisis.World.CoreClient;
 using Sylver.HandlerInvoker;
+using Sylver.Network.Data;
 using System.IO;
 using System.Threading.Tasks;
+using Rhisis.World.ClusterClient;
 
 namespace Rhisis.World
 {
@@ -36,9 +36,9 @@ namespace Rhisis.World
                     services.AddOptions();
                     services.AddMemoryCache();
                     services.Configure<WorldConfiguration>(hostContext.Configuration.GetSection(ConfigurationConstants.WorldServer));
-                    services.Configure<CoreConfiguration>(hostContext.Configuration.GetSection(ConfigurationConstants.CoreServer));
-                    services.RegisterDatabaseServices(hostContext.Configuration.Get<DatabaseConfiguration>());
+                    services.Configure<WorldClusterConfiguration>(hostContext.Configuration.GetSection(ConfigurationConstants.WorldClusterServer));
 
+                    services.AddDatabase(hostContext.Configuration);
                     services.AddHandlers();
                     services.AddGameResources();
                     services.AddInjectableServices();
@@ -46,10 +46,10 @@ namespace Rhisis.World
                     // World server configuration
                     services.AddSingleton<IWorldServer, WorldServer>();
                     services.AddSingleton<IHostedService, WorldServerService>();
-
-                    // Core client configuration
-                    services.AddSingleton<IWorldCoreClient, WorldCoreClient>();
-                    services.AddSingleton<IHostedService, WorldCoreClientService>();
+                    
+                    // World cluster server client configuration
+                    services.AddSingleton<IWorldClusterClient, WorldClusterClient>();
+                    services.AddSingleton<IHostedService, WorldClusterClientService>();
                 })
                 .ConfigureLogging(builder =>
                 {

@@ -57,6 +57,11 @@ namespace Rhisis.World.Game.Components
         public bool Spawned { get; set; }
 
         /// <summary>
+        /// Gets or sets if the mob can respawn.
+        /// </summary>
+        public bool AbleRespawn { get; set; }
+
+        /// <summary>
         /// Gets or sets the object's level.
         /// </summary>
         public int Level { get; set; }
@@ -74,7 +79,7 @@ namespace Rhisis.World.Game.Components
         /// <summary>
         /// Gets the current map layer.
         /// </summary>
-        public IMapLayer CurrentLayer => this.CurrentMap?.GetMapLayer(this.LayerId);
+        public IMapLayer CurrentLayer => CurrentMap?.GetMapLayer(LayerId);
 
         /// <summary>
         /// Gets or sets the moving flags.
@@ -96,16 +101,16 @@ namespace Rhisis.World.Game.Components
         /// </summary>
         public ObjectComponent()
         {
-            this.Position = new Vector3();
-            this.Entities = new List<IWorldEntity>();
-            this.Size = DefaultObjectSize;
-            this.MovingFlags = ObjectState.OBJSTA_STAND;
+            Position = new Vector3();
+            Entities = new List<IWorldEntity>();
+            Size = DefaultObjectSize;
+            MovingFlags = ObjectState.OBJSTA_STAND;
         }
 
         /// <summary>
         /// To String
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => $"Object: {this.Name}";
+        public override string ToString() => $"Object: {Name}";
     }
 }

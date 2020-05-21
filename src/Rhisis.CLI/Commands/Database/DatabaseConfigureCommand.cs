@@ -5,6 +5,7 @@ using Rhisis.CLI.Core;
 using Rhisis.CLI.Services;
 using Rhisis.Core.Helpers;
 using Rhisis.Core.Structures.Configuration;
+using Rhisis.Core.Structures.Configuration.Models;
 using Rhisis.Database;
 
 namespace Rhisis.CLI.Commands.Database
@@ -29,7 +30,7 @@ namespace Rhisis.CLI.Commands.Database
         /// <param name="consoleHelper">Console helper.</param>
         public DatabaseConfigureCommand(ConsoleHelper consoleHelper)
         {
-            this._consoleHelper = consoleHelper;
+            _consoleHelper = consoleHelper;
         }
 
         /// <summary>
@@ -37,21 +38,19 @@ namespace Rhisis.CLI.Commands.Database
         /// </summary>
         public void OnExecute()
         {
-            if (string.IsNullOrEmpty(this.DatabaseConfigurationFile))
-                this.DatabaseConfigurationFile = ConfigurationConstants.DatabasePath;
+            if (string.IsNullOrEmpty(DatabaseConfigurationFile))
+                DatabaseConfigurationFile = ConfigurationConstants.DatabasePath;
 
-            var databaseConfiguration = ConfigurationHelper.Load<DatabaseConfiguration>(this.DatabaseConfigurationFile);
+            var databaseConfiguration = ConfigurationHelper.Load<DatabaseConfiguration>(DatabaseConfigurationFile, ConfigurationConstants.DatabaseConfiguration);
             var dbConfiguration = new ObjectConfigurationFiller<DatabaseConfiguration>(databaseConfiguration);
 
             dbConfiguration.Fill();
 
-            bool useEncryption = this._consoleHelper.AskConfirmation("Use encryption?");
-
-            if (useEncryption)
+            if (dbConfiguration.Value.UseEncryption)
             {
-                if (string.IsNullOrEmpty(databaseConfiguration.EncryptionKey))
+                if (string.IsNullOrEmpty(dbConfiguration.Value.EncryptionKey))
                 {
-                    databaseConfiguration.EncryptionKey = Convert.ToBase64String(AesProvider.GenerateKey(AesKeySize.AES256Bits).Key);
+                    dbConfiguration.Value.EncryptionKey = Convert.ToBase64String(AesProvider.GenerateKey(AesKeySize.AES256Bits).Key);
                 }
                 else
                 {
@@ -60,14 +59,17 @@ namespace Rhisis.CLI.Commands.Database
             }
 
             dbConfiguration.Show("Database configuration");
-            Console.WriteLine($"Encryption key: {databaseConfiguration.EncryptionKey}");
+            Console.WriteLine($"Encryption key: {dbConfiguration.Value.EncryptionKey}");
 
             bool response = _consoleHelper.AskConfirmation("Save this configuration?");
 
             if (response)
             {
-                ConfigurationHelper.Save(this.DatabaseConfigurationFile, databaseConfiguration);
-                Console.WriteLine($"Database configuration saved in '{this.DatabaseConfigurationFile}'.");
+                ConfigurationHelper.Save(DatabaseConfigurationFile, new DatabaseConfigurationModel()
+                {
+                    DatabaseConfiguration = dbConfiguration.Value
+                });
+                Console.WriteLine($"Database configuration saved in '{DatabaseConfigurationFile}'.");
             }
         }
     }

@@ -1,5 +1,5 @@
-﻿using Ether.Network.Common;
-using Rhisis.World.Game.Components;
+﻿using Rhisis.World.Game.Components;
+using Sylver.Network.Common;
 
 namespace Rhisis.World.Game.Entities
 {
@@ -18,7 +18,7 @@ namespace Rhisis.World.Game.Entities
         /// <summary>
         /// Gets or sets the player's inventory.
         /// </summary>
-        ItemContainerComponent Inventory { get; set; }
+        InventoryContainerComponent Inventory { get; set; }
 
         /// <summary>
         /// Gets or sets the player's trade component.
@@ -34,6 +34,16 @@ namespace Rhisis.World.Game.Entities
         /// Gets or sets the player's statistics component.
         /// </summary>
         StatisticsComponent Statistics { get; set; }
+
+        /// <summary>
+        /// Gets or sets the player's quest diary.
+        /// </summary>
+        QuestDiaryComponent QuestDiary { get; set; }
+
+        /// <summary>
+        /// Gets or sets the player's skill tree.
+        /// </summary>
+        SkillTreeComponent SkillTree { get; set; }
 
         /// <summary>
         /// Gets or sets the player's connection.

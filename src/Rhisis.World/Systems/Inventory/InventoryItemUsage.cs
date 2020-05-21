@@ -1,12 +1,16 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Rhisis.Core.Common;
 using Rhisis.Core.Data;
 using Rhisis.Core.DependencyInjection;
+using Rhisis.Core.Structures.Configuration.World;
 using Rhisis.World.Game.Entities;
 using Rhisis.World.Game.Helpers;
 using Rhisis.World.Game.Maps;
 using Rhisis.World.Game.Maps.Regions;
 using Rhisis.World.Game.Structures;
 using Rhisis.World.Packets;
+using Rhisis.World.Systems.PlayerData;
 using Rhisis.World.Systems.SpecialEffect;
 using Rhisis.World.Systems.Teleport;
 using System;
@@ -24,19 +28,23 @@ namespace Rhisis.World.Systems.Inventory
         private readonly ITeleportSystem _teleportSystem;
         private readonly IMoverPacketFactory _moverPacketFactory;
         private readonly ITextPacketFactory _textPacketFactory;
+        private readonly IPlayerDataSystem _playerDataSystem;
+        private readonly WorldConfiguration _worldServerConfiguration;
 
         /// <summary>
         /// Creates a new <see cref="InventoryItemUsage"/> instance.
         /// </summary>
-        public InventoryItemUsage(ILogger<InventoryItemUsage> logger, IInventoryPacketFactory inventoryPacketFactory, IMapManager mapManager, ISpecialEffectSystem specialEffectSystem, ITeleportSystem teleportSystem, IMoverPacketFactory moverPacketFactory, ITextPacketFactory textPacketFactory)
+        public InventoryItemUsage(ILogger<InventoryItemUsage> logger, IInventoryPacketFactory inventoryPacketFactory, IMapManager mapManager, ISpecialEffectSystem specialEffectSystem, ITeleportSystem teleportSystem, IMoverPacketFactory moverPacketFactory, ITextPacketFactory textPacketFactory, IPlayerDataSystem playerDataSystem, IOptions<WorldConfiguration> worldServerConfiguration)
         {
-            this._logger = logger;
-            this._inventoryPacketFactory = inventoryPacketFactory;
-            this._mapManager = mapManager;
-            this._specialEffectSystem = specialEffectSystem;
-            this._teleportSystem = teleportSystem;
-            this._moverPacketFactory = moverPacketFactory;
-            this._textPacketFactory = textPacketFactory;
+            _logger = logger;
+            _inventoryPacketFactory = inventoryPacketFactory;
+            _mapManager = mapManager;
+            _specialEffectSystem = specialEffectSystem;
+            _teleportSystem = teleportSystem;
+            _moverPacketFactory = moverPacketFactory;
+            _textPacketFactory = textPacketFactory;
+            _playerDataSystem = playerDataSystem;
+            _worldServerConfiguration = worldServerConfiguration.Value;
         }
 
         public void UseFoodItem(IPlayerEntity player, Item foodItemToUse)
@@ -45,7 +53,7 @@ namespace Rhisis.World.Systems.Inventory
             {
                 if (parameter.Key == DefineAttributes.HP || parameter.Key == DefineAttributes.MP || parameter.Key == DefineAttributes.FP)
                 {
-                    int currentPoints = PlayerHelper.GetPoints(player, parameter.Key);
+                    int currentPoints = player.Attributes[parameter.Key];
                     int maxPoints = PlayerHelper.GetMaxPoints(player, parameter.Key);
                     int itemMaxRecovery = foodItemToUse.Data.AbilityMin;
 
@@ -63,9 +71,9 @@ namespace Rhisis.World.Systems.Inventory
                             {
                                 switch (parameter.Key)
                                 {
-                                    case DefineAttributes.HP: this._textPacketFactory.SendDefinedText(player, DefineText.TID_GAME_LIMITHP); break;
-                                    case DefineAttributes.MP: this._textPacketFactory.SendDefinedText(player, DefineText.TID_GAME_LIMITMP); break;
-                                    case DefineAttributes.FP: this._textPacketFactory.SendDefinedText(player, DefineText.TID_GAME_LIMITFP); break;
+                                    case DefineAttributes.HP: _textPacketFactory.SendDefinedText(player, DefineText.TID_GAME_LIMITHP); break;
+                                    case DefineAttributes.MP: _textPacketFactory.SendDefinedText(player, DefineText.TID_GAME_LIMITMP); break;
+                                    case DefineAttributes.FP: _textPacketFactory.SendDefinedText(player, DefineText.TID_GAME_LIMITFP); break;
                                 }
 
                                 currentPoints += (int)limitedRecovery;
@@ -78,25 +86,25 @@ namespace Rhisis.World.Systems.Inventory
                     }
 
                     PlayerHelper.SetPoints(player, parameter.Key, currentPoints);
-                    this._moverPacketFactory.SendUpdateAttributes(player, parameter.Key, PlayerHelper.GetPoints(player, parameter.Key));
+                    _moverPacketFactory.SendUpdateAttributes(player, parameter.Key, player.Attributes[parameter.Key]);
                 }
                 else
                 {
                     // TODO: food triggers a skill.
-                    this._logger.LogWarning($"Activating a skill throught food.");
-                    this._textPacketFactory.SendFeatureNotImplemented(player, "skill with food");
+                    _logger.LogWarning($"Activating a skill throught food.");
+                    _textPacketFactory.SendFeatureNotImplemented(player, "skill with food");
                 }
             }
 
-            this.DecreaseItem(player, foodItemToUse);
+            DecreaseItem(player, foodItemToUse);
         }
 
         public void UseBlinkwingItem(IPlayerEntity player, Item blinkwing)
         {
             if (player.Object.Level < blinkwing.Data.LimitLevel)
             {
-                this._logger.LogError($"Player {player.Object.Name} cannot use {blinkwing.Data.Name}. Level too low.");
-                this._textPacketFactory.SendDefinedText(player, DefineText.TID_GAME_USINGNOTLEVEL);
+                _logger.LogError($"Player {player.Object.Name} cannot use {blinkwing.Data.Name}. Level too low.");
+                _textPacketFactory.SendDefinedText(player, DefineText.TID_GAME_USINGNOTLEVEL);
                 return;
             }
 
@@ -112,17 +120,18 @@ namespace Rhisis.World.Systems.Inventory
 
                 if (revivalRegion == null)
                 {
-                    this._logger.LogError($"Cannot find any revival region for map '{player.Object.CurrentMap.Name}'.");
+                    _logger.LogError($"Cannot find any revival region for map '{player.Object.CurrentMap.Name}'.");
                     return;
                 }
                 if (player.Object.MapId != revivalRegion.MapId)
                 {
-                    IMapInstance revivalMap = this._mapManager.GetMap(revivalRegion.MapId);
+                    IMapInstance revivalMap = _mapManager.GetMap(revivalRegion.MapId);
 
                     if (revivalMap == null)
                     {
-                        this._logger.LogError($"Cannot find revival map with id '{revivalRegion.MapId}'.");
-                        player.Connection.Server.DisconnectClient(player.Connection.Id);
+                        _logger.LogError($"Cannot find revival map with id '{revivalRegion.MapId}'.");
+                        // TODO: disconnect client
+                        //player.Connection.Server.DisconnectClient(player.Connection.Id);
                         return;
                     }
 
@@ -145,13 +154,38 @@ namespace Rhisis.World.Systems.Inventory
 
             player.Inventory.ItemInUseActionId = player.Delayer.DelayAction(TimeSpan.FromMilliseconds(blinkwing.Data.SkillReadyType), () =>
             {
-                this._teleportSystem.Teleport(player, teleportEvent.MapId, teleportEvent.PositionX, teleportEvent.PositionY, teleportEvent.PositionZ, teleportEvent.Angle);
-                this._specialEffectSystem.SetStateModeBaseMotion(player, StateModeBaseMotion.BASEMOTION_OFF);
+                _teleportSystem.Teleport(player, teleportEvent.MapId, teleportEvent.PositionX, teleportEvent.PositionY, teleportEvent.PositionZ, teleportEvent.Angle);
+                _specialEffectSystem.SetStateModeBaseMotion(player, StateModeBaseMotion.BASEMOTION_OFF);
                 player.Inventory.ItemInUseActionId = Guid.Empty;
-                this.DecreaseItem(player, blinkwing);
+                DecreaseItem(player, blinkwing);
             });
 
-            this._specialEffectSystem.SetStateModeBaseMotion(player, StateModeBaseMotion.BASEMOTION_ON, blinkwing);
+            _specialEffectSystem.SetStateModeBaseMotion(player, StateModeBaseMotion.BASEMOTION_ON, blinkwing);
+        }
+
+        public void UseMagicItem(IPlayerEntity player, Item magicItem)
+        {
+            player.Inventory.ItemInUseActionId = player.Delayer.DelayAction(TimeSpan.FromMilliseconds(magicItem.Data.SkillReadyType), () =>
+            {
+                _specialEffectSystem.SetStateModeBaseMotion(player, StateModeBaseMotion.BASEMOTION_OFF);
+                player.Inventory.ItemInUseActionId = Guid.Empty;
+                DecreaseItem(player, magicItem, noFollowSfx: true);
+            });
+            _specialEffectSystem.SetStateModeBaseMotion(player, StateModeBaseMotion.BASEMOTION_ON, magicItem);
+        }
+
+        public void UsePerin(IPlayerEntity player, Item perinItem)
+        {
+            int perinValue = _worldServerConfiguration.Perin.PerinValue;
+            if (!_playerDataSystem.IncreaseGold(player, perinValue))
+            {
+                _logger.LogTrace($"Failed to generate gold from a perin for player '{player.Object.Name}'.");
+            }
+            else
+            {
+                DecreaseItem(player, perinItem);
+                _logger.LogTrace($"Player '{player.Object.Name}' created {perinValue} gold.");
+            }
         }
 
         /// <summary>
@@ -159,7 +193,7 @@ namespace Rhisis.World.Systems.Inventory
         /// </summary>
         /// <param name="player">Player.</param>
         /// <param name="item">Item to decrease.</param>
-        private void DecreaseItem(IPlayerEntity player, Item item)
+        private void DecreaseItem(IPlayerEntity player, Item item, bool noFollowSfx = false)
         {
             var itemUpdateType = UpdateItemType.UI_NUM;
 
@@ -170,15 +204,21 @@ namespace Rhisis.World.Systems.Inventory
             }
 
             if (!item.Data.IsPermanant)
+            {
                 item.Quantity--;
+            }
 
-            this._inventoryPacketFactory.SendItemUpdate(player, itemUpdateType, item.UniqueId, item.Quantity);
-
-            if (item.Quantity <= 0)
-                item.Reset();
+            _inventoryPacketFactory.SendItemUpdate(player, itemUpdateType, item.UniqueId, item.Quantity);
 
             if (item.Data.SfxObject3 != 0)
-                this._specialEffectSystem.StartSpecialEffect(player, (DefineSpecialEffects)item.Data.SfxObject3);
+            {
+                _specialEffectSystem.StartSpecialEffect(player, (DefineSpecialEffects)item.Data.SfxObject3, noFollowSfx);
+            }
+
+            if (item.Quantity <= 0)
+            {
+                item.Reset();
+            }
         }
     }
 }

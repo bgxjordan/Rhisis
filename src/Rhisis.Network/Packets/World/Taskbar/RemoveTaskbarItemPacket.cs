@@ -1,8 +1,8 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.World.Taskbar
 {
-    public class RemoveTaskbarItemPacket : RemoveTaskbarAppletPacket, IPacketDeserializer
+    public class RemoveTaskbarItemPacket : RemoveTaskbarAppletPacket
     {
         /// <summary>
         ///  Gets the slot level index from the item taskbar to be removed.
@@ -12,7 +12,7 @@ namespace Rhisis.Network.Packets.World.Taskbar
         /// <inheritdoc />
         public override void Deserialize(INetPacketStream packet)
         {
-            this.SlotLevelIndex = packet.Read<byte>();
+            SlotLevelIndex = packet.Read<byte>();
             base.Deserialize(packet);
         }
     }

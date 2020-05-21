@@ -1,4 +1,4 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.World.Game.Components
 {
@@ -14,10 +14,10 @@ namespace Rhisis.World.Game.Components
 
         public void Serialize(INetPacketStream packet)
         {
-            this.Applets.Serialize(packet);
-            this.Items.Serialize(packet);
-            this.Queue.Serialize(packet);
-            packet.Write(this.ActionPoints);
+            Applets.Serialize(packet);
+            Items.Serialize(packet);
+            Queue.Serialize(packet);
+            packet.Write(ActionPoints);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.World
 {
@@ -7,7 +7,7 @@ namespace Rhisis.Network.Packets.World
         /// <summary>
         /// Gets the strength.
         /// </summary>
-        public ushort Strenght { get; private set; }
+        public ushort Strength { get; private set; }
 
         /// <summary>
         /// Gets the stamina.
@@ -27,10 +27,10 @@ namespace Rhisis.Network.Packets.World
         /// <inheritdoc />
         public void Deserialize(INetPacketStream packet)
         {
-            this.Strenght = (ushort)packet.Read<int>();
-            this.Stamina = (ushort)packet.Read<int>();
-            this.Dexterity = (ushort)packet.Read<int>();
-            this.Intelligence = (ushort)packet.Read<int>();
+            Strength = (ushort)packet.Read<int>();
+            Stamina = (ushort)packet.Read<int>();
+            Dexterity = (ushort)packet.Read<int>();
+            Intelligence = (ushort)packet.Read<int>();
         }
     }
 }

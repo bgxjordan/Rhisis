@@ -1,10 +1,7 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.World
 {
-    /// <summary>
-    /// Defines the <see cref="ChatPacket"/> structure.
-    /// </summary>
     public class ChatPacket : IPacketDeserializer
     {
         /// <summary>
@@ -15,7 +12,7 @@ namespace Rhisis.Network.Packets.World
         /// <inheritdoc />
         public void Deserialize(INetPacketStream packet)
         {
-            this.Message = packet.Read<string>();
+            Message = packet.Read<string>();
         }
     }
 }

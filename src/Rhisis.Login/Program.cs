@@ -1,5 +1,4 @@
-﻿using Ether.Network.Packets;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -12,6 +11,7 @@ using Rhisis.Login.Core.Packets;
 using Rhisis.Login.Packets;
 using Rhisis.Network.Packets;
 using Sylver.HandlerInvoker;
+using Sylver.Network.Data;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -35,19 +35,19 @@ namespace Rhisis.Login
                     services.AddOptions();
                     services.Configure<LoginConfiguration>(hostContext.Configuration.GetSection(ConfigurationConstants.LoginServer));
                     services.Configure<CoreConfiguration>(hostContext.Configuration.GetSection(ConfigurationConstants.CoreServer));
-                    services.RegisterDatabaseServices(hostContext.Configuration.Get<DatabaseConfiguration>());
 
+                    services.AddDatabase(hostContext.Configuration);
                     services.AddHandlers();
 
                     // Login Server
                     services.AddSingleton<ILoginServer, LoginServer>();
                     services.AddSingleton<ILoginPacketFactory, LoginPacketFactory>();
-                    services.AddSingleton<IHostedService, LoginServerService>(); // LoginServer service starting the server
+                    services.AddSingleton<IHostedService, LoginServerService>();
 
                     // Core Server
                     services.AddSingleton<ICoreServer, CoreServer>();
                     services.AddSingleton<ICorePacketFactory, CorePacketFactory>();
-                    services.AddSingleton<IHostedService, CoreServerService>(); // CoreServer service starting the core server
+                    services.AddSingleton<IHostedService, CoreServerService>();
                 })
                 .ConfigureLogging(builder =>
                 {

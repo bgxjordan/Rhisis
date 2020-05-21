@@ -24,7 +24,7 @@ namespace Rhisis.CLI.Commands.Configure
         /// <summary>
         /// Gets the real configuration file.
         /// </summary>
-        private string ConfigurationFile => !string.IsNullOrEmpty(this.WorldConfigurationFile) ? this.WorldConfigurationFile : ConfigurationConstants.WorldServerPath;
+        private string ConfigurationFile => !string.IsNullOrEmpty(WorldConfigurationFile) ? WorldConfigurationFile : ConfigurationConstants.WorldServerPath;
 
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace Rhisis.CLI.Commands.Configure
         /// <param name="consoleHelper">Console helpers.</param>
         public WorldServerConfigurationCommand(ConsoleHelper consoleHelper)
         {
-            this._consoleHelper = consoleHelper;
+            _consoleHelper = consoleHelper;
         }
 
         /// <summary>
@@ -41,10 +41,10 @@ namespace Rhisis.CLI.Commands.Configure
         /// </summary>
         public void OnExecute()
         {
-            var worldServerConfiguration = ConfigurationHelper.Load<WorldConfiguration>(this.ConfigurationFile, ConfigurationConstants.WorldServer);
-            var coreServerConfiguratinon = ConfigurationHelper.Load<CoreConfiguration>(this.ConfigurationFile, ConfigurationConstants.CoreServer);
+            var worldServerConfiguration = ConfigurationHelper.Load<WorldConfiguration>(ConfigurationFile, ConfigurationConstants.WorldServer);
+            var worldClusterConfiguration = ConfigurationHelper.Load<WorldClusterConfiguration>(ConfigurationFile, ConfigurationConstants.WorldClusterServer);
             var worldConfiguration = new ObjectConfigurationFiller<WorldConfiguration>(worldServerConfiguration);
-            var coreConfiguration = new ObjectConfigurationFiller<CoreConfiguration>(coreServerConfiguratinon);
+            var worldClusterServerConfiguration = new ObjectConfigurationFiller<WorldClusterConfiguration>(worldClusterConfiguration);
 
             Console.WriteLine("----- World Server -----");
             worldConfiguration.Fill();
@@ -54,26 +54,26 @@ namespace Rhisis.CLI.Commands.Configure
                 "WI_DUNGEON_FL_MAS"
             };
 
-            Console.WriteLine("----- Core Server -----");
-            coreConfiguration.Fill();
-            coreConfiguration.Value.Password = MD5.GetMD5Hash(coreConfiguration.Value.Password);
+            Console.WriteLine("----- World cluster Server -----");
+            worldClusterServerConfiguration.Fill();
+            worldClusterServerConfiguration.Value.Password = MD5.GetMD5Hash(worldClusterServerConfiguration.Value.Password);
 
             Console.WriteLine("##### Configuration review #####");
             worldConfiguration.Show("World Server configuration");
-            coreConfiguration.Show("Core server configuration");
+            worldClusterServerConfiguration.Show("World cluster configuration");
 
-            bool response = this._consoleHelper.AskConfirmation("Save this configuration?");
+            bool response = _consoleHelper.AskConfirmation("Save this configuration?");
 
             if (response)
             {
                 var configuration = new Dictionary<string, object>
                 {
                     { ConfigurationConstants.WorldServer, worldConfiguration.Value },
-                    { ConfigurationConstants.CoreServer, coreConfiguration.Value }
+                    { ConfigurationConstants.WorldClusterServer, worldClusterServerConfiguration.Value }
                 };
 
-                ConfigurationHelper.Save(this.ConfigurationFile, configuration);
-                Console.WriteLine($"World Server configuration saved in {this.ConfigurationFile}!");
+                ConfigurationHelper.Save(ConfigurationFile, configuration);
+                Console.WriteLine($"World Server configuration saved in {ConfigurationFile}!");
             }
         }
     }

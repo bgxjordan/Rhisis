@@ -23,6 +23,11 @@ namespace Rhisis.World.Game.Components
         public DateTime LoggedInAt { get; set; }
 
         /// <summary>
+        /// Gets or sets the player's gender.
+        /// </summary>
+        public GenderType Gender { get; set; }
+
+        /// <summary>
         /// Gets or sets the player's slot.
         /// </summary>
         public int Slot { get; set; }
@@ -50,7 +55,7 @@ namespace Rhisis.World.Game.Components
         /// <summary>
         /// Gets or sets the Job Id.
         /// </summary>
-        public int JobId => this.JobData.Id;
+        public DefineJob.Job Job => JobData.Id;
 
         /// <summary>
         /// Gets the job's data.
@@ -63,6 +68,9 @@ namespace Rhisis.World.Game.Components
         /// </summary>
         public int Version { get; set; } = StartVersion;
 
+        /// <summary>
+        /// Gets the player mode.
+        /// </summary>
         public ModeType Mode { get; set; }
 
         /// <summary>

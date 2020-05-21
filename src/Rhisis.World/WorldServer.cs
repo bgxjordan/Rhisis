@@ -1,115 +1,130 @@
-﻿using Ether.Network.Packets;
-using Ether.Network.Server;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Rhisis.Core.Resources;
 using Rhisis.Core.Resources.Loaders;
 using Rhisis.Core.Structures.Configuration.World;
+using Rhisis.Database;
 using Rhisis.Network;
-using Rhisis.Network.Packets;
+using Rhisis.Scripting.Quests;
 using Rhisis.World.Client;
 using Rhisis.World.Game.Behaviors;
 using Rhisis.World.Game.Chat;
 using Rhisis.World.Game.Entities;
 using Rhisis.World.Game.Maps;
+using Rhisis.World.Packets;
 using Sylver.HandlerInvoker;
+using Sylver.Network.Server;
 using System;
 using System.Linq;
 
 namespace Rhisis.World
 {
-    public sealed partial class WorldServer : NetServer<WorldClient>, IWorldServer
+    public sealed partial class WorldServer : NetServer<WorldServerClient>, IWorldServer
     {
-        private const int MaxConnections = 500;
         private const int ClientBufferSize = 128;
         private const int ClientBacklog = 50;
 
         private readonly ILogger<WorldServer> _logger;
+        private readonly IWorldServerTaskManager _worldServerTaskManager;
         private readonly WorldConfiguration _worldConfiguration;
         private readonly IGameResources _gameResources;
         private readonly IServiceProvider _serviceProvider;
         private readonly IMapManager _mapManager;
         private readonly IBehaviorManager _behaviorManager;
         private readonly IChatCommandManager _chatCommandManager;
-
-        /// <inheritdoc />
-        protected override IPacketProcessor PacketProcessor { get; } = new FlyffPacketProcessor();
+        private readonly IRhisisDatabase _database;
 
         /// <summary>
         /// Creates a new <see cref="WorldServer"/> instance.
         /// </summary>
-        public WorldServer(ILogger<WorldServer> logger, IOptions<WorldConfiguration> worldConfiguration, IGameResources gameResources, IServiceProvider serviceProvider, IMapManager mapManager, IBehaviorManager behaviorManager, IChatCommandManager chatCommandManager)
+        public WorldServer(ILogger<WorldServer> logger, IOptions<WorldConfiguration> worldConfiguration, 
+            IWorldServerTaskManager worldServerTaskManager,
+            IGameResources gameResources, IServiceProvider serviceProvider, 
+            IMapManager mapManager, IBehaviorManager behaviorManager, IChatCommandManager chatCommandManager, IRhisisDatabase database)
         {
-            this._logger = logger;
-            this._worldConfiguration = worldConfiguration.Value;
-            this._gameResources = gameResources;
-            this._serviceProvider = serviceProvider;
-            this._mapManager = mapManager;
-            this._behaviorManager = behaviorManager;
-            this._chatCommandManager = chatCommandManager;
-            this.Configuration.Host = this._worldConfiguration.Host;
-            this.Configuration.Port = this._worldConfiguration.Port;
-            this.Configuration.MaximumNumberOfConnections = MaxConnections;
-            this.Configuration.Backlog = ClientBacklog;
-            this.Configuration.BufferSize = ClientBufferSize;
-            this.Configuration.Blocking = false;
+            _logger = logger;
+            _worldServerTaskManager = worldServerTaskManager;
+            _worldConfiguration = worldConfiguration.Value;
+            _gameResources = gameResources;
+            _serviceProvider = serviceProvider;
+            _mapManager = mapManager;
+            _behaviorManager = behaviorManager;
+            _chatCommandManager = chatCommandManager;
+            _database = database;
+            PacketProcessor = new FlyffPacketProcessor();
+            ServerConfiguration = new NetServerConfiguration(_worldConfiguration.Host, _worldConfiguration.Port, ClientBacklog, ClientBufferSize);
         }
 
         /// <inheritdoc />
-        protected override void Initialize()
+        protected override void OnBeforeStart()
         {
-            this._gameResources.Load(typeof(DefineLoader),
+            if (!_database.IsAlive())
+            {
+                throw new InvalidProgramException($"Cannot start {nameof(WorldServer)}. Failed to reach database.");
+            }
+
+            _gameResources.Load(typeof(DefineLoader),
                 typeof(TextLoader),
                 typeof(MoverLoader),
                 typeof(ItemLoader),
                 typeof(DialogLoader),
                 typeof(ShopLoader),
                 typeof(JobLoader),
+                typeof(SkillLoader),
                 typeof(ExpTableLoader),
                 typeof(PenalityLoader),
-                typeof(NpcLoader));
+                typeof(NpcLoader),
+                typeof(QuestLoader));
 
-            this._chatCommandManager.Load();
-            this._behaviorManager.Load();
-            this._mapManager.Load();
-
-            //TODO: Implement this log inside OnStarted method when will be available.
-            this._logger.LogInformation("'{0}' world server is started and listen on {1}:{2}.",
-                this._worldConfiguration.Name, this.Configuration.Host, this.Configuration.Port);
+            _chatCommandManager.Load();
+            _behaviorManager.Load();
+            _mapManager.Load();
         }
 
         /// <inheritdoc />
-        protected override void OnClientConnected(WorldClient client)
+        protected override void OnAfterStart()
         {
-            client.Initialize(this._serviceProvider.GetRequiredService<ILogger<WorldClient>>(),
-                this._serviceProvider.GetRequiredService<IHandlerInvoker>());
-            CommonPacketFactory.SendWelcome(client, client.SessionId);
-
-            this._logger.LogInformation("New client connected from {0}.", client.RemoteEndPoint);
+            _worldServerTaskManager.Start();
+            _logger.LogInformation("'{0}' world server is started and listenening on {1}:{2}.",
+                _worldConfiguration.Name, ServerConfiguration.Host, ServerConfiguration.Port);
         }
 
         /// <inheritdoc />
-        protected override void OnClientDisconnected(WorldClient client)
+        protected override void OnBeforeStop()
         {
-            this._logger.LogInformation("Client disconnected from {0}.", client.RemoteEndPoint);
+            _worldServerTaskManager.Stop();
         }
 
         /// <inheritdoc />
-        protected override void OnError(Exception exception)
+        protected override void OnClientConnected(WorldServerClient serverClient)
         {
-            this._logger.LogError("WorldServer Error: {0}", exception.Message);
+            serverClient.Initialize(_serviceProvider.GetRequiredService<ILogger<WorldServerClient>>(),
+                _serviceProvider.GetRequiredService<IHandlerInvoker>(),
+                _serviceProvider.GetRequiredService<IWorldServerPacketFactory>());
+
+            _logger.LogInformation("New client connected from {0}.", serverClient.Socket.RemoteEndPoint);
         }
 
         /// <inheritdoc />
-        public IPlayerEntity GetPlayerEntity(uint id) => this.Clients.FirstOrDefault(x => x.Player.Id == id)?.Player;
+        protected override void OnClientDisconnected(WorldServerClient serverClient)
+        {
+            _logger.LogInformation("Client disconnected from {0}.", serverClient.Socket.RemoteEndPoint);
+        }
+
+        /// <inheritdoc />
+        public IPlayerEntity GetPlayerEntity(uint id) => Clients.FirstOrDefault(x => x.Player.Id == id)?.Player;
 
         /// <inheritdoc />
         public IPlayerEntity GetPlayerEntity(string name) 
-            => this.Clients.FirstOrDefault(x => x.Player.Object.Name.Equals(name, StringComparison.OrdinalIgnoreCase))?.Player;
+            => Clients.FirstOrDefault(x => x.Player.Object.Name.Equals(name, StringComparison.OrdinalIgnoreCase))?.Player;
 
         /// <inheritdoc />
         public IPlayerEntity GetPlayerEntityByCharacterId(uint id) 
-            => this.Clients.FirstOrDefault(x => x.Player.PlayerData.Id == id)?.Player;
+            => Clients.FirstOrDefault(x => x.Player.PlayerData.Id == id)?.Player;
+
+        /// <inheritdoc />
+        public uint GetOnlineConnectedPlayerNumber() 
+            => (uint)Clients.Count();
     }
 }

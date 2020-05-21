@@ -1,4 +1,4 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.Login
 {
@@ -10,8 +10,8 @@ namespace Rhisis.Network.Packets.Login
 
         public void Deserialize(INetPacketStream packet)
         {
-            this.Username = packet.Read<string>();
-            this.Password = packet.Read<string>();
+            Username = packet.Read<string>();
+            Password = packet.Read<string>();
         }
     }
 }

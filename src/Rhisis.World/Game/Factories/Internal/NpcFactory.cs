@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Rhisis.Core.Common;
+using Rhisis.Core.Data;
 using Rhisis.Core.DependencyInjection;
 using Rhisis.Core.Helpers;
 using Rhisis.Core.Resources;
@@ -8,7 +9,11 @@ using Rhisis.Core.Structures.Game;
 using Rhisis.World.Game.Behaviors;
 using Rhisis.World.Game.Components;
 using Rhisis.World.Game.Entities;
+using Rhisis.World.Game.Entities.Internal;
 using Rhisis.World.Game.Maps;
+using Rhisis.World.Game.Structures;
+using System;
+using System.Linq;
 
 namespace Rhisis.World.Game.Factories.Internal
 {
@@ -16,7 +21,7 @@ namespace Rhisis.World.Game.Factories.Internal
     public sealed class NpcFactory : INpcFactory
     {
         private readonly IGameResources _gameResources;
-        private readonly IBehaviorManager behaviorManager;
+        private readonly IBehaviorManager _behaviorManager;
         private readonly IItemFactory _itemFactory;
 
         /// <summary>
@@ -27,21 +32,28 @@ namespace Rhisis.World.Game.Factories.Internal
         /// <param name="itemFactory">Item Factory.</param>
         public NpcFactory(IGameResources gameResources, IBehaviorManager behaviorManager, IItemFactory itemFactory)
         {
-            this._gameResources = gameResources;
-            this.behaviorManager = behaviorManager;
-            this._itemFactory = itemFactory;
+            _gameResources = gameResources;
+            _behaviorManager = behaviorManager;
+            _itemFactory = itemFactory;
         }
 
         /// <inheritdoc />
         public INpcEntity CreateNpc(IMapContext mapContext, NpcDyoElement element)
         {
+            int npcModelId = element.Index;
+
+            if (!_gameResources.Movers.TryGetValue(npcModelId, out MoverData moverData))
+            {
+                throw new ArgumentException($"Cannot find mover with id '{npcModelId}' in game resources.", nameof(npcModelId));
+            }
+
             var npc = new NpcEntity
             {
                 Object = new ObjectComponent
                 {
                     MapId = mapContext.Id,
                     CurrentMap = mapContext as IMapInstance,
-                    ModelId = element.Index,
+                    ModelId = npcModelId,
                     Name = element.CharacterKey,
                     Angle = element.Angle,
                     Position = element.Position.Clone(),
@@ -49,19 +61,22 @@ namespace Rhisis.World.Game.Factories.Internal
                     Spawned = true,
                     Type = WorldObjectType.Mover,
                     Level = 1
-                }
+                },
+                Data = moverData
             };
-            npc.Behavior = behaviorManager.GetBehavior(BehaviorType.Npc, npc, npc.Object.ModelId);
+            npc.Behavior = _behaviorManager.GetBehavior(BehaviorType.Npc, npc, npc.Object.ModelId);
             npc.Timers.LastSpeakTime = RandomHelper.Random(10, 15);
+            npc.Quests = _gameResources.Quests.Values.Where(x => !string.IsNullOrEmpty(x.StartCharacter) && x.StartCharacter.Equals(npc.Object.Name, StringComparison.OrdinalIgnoreCase)).ToList();
+            npc.Hand = _itemFactory.CreateItem(11, 0, ElementType.None, 0);
 
-            if (this._gameResources.Npcs.TryGetValue(npc.Object.Name, out NpcData npcData))
+            if (_gameResources.Npcs.TryGetValue(npc.Object.Name, out NpcData npcData))
             {
-                npc.Data = npcData;
+                npc.NpcData = npcData;
             }
 
-            if (npc.Data != null && npc.Data.HasShop)
+            if (npc.NpcData != null && npc.NpcData.HasShop)
             {
-                ShopData npcShopData = npc.Data.Shop;
+                ShopData npcShopData = npc.NpcData.Shop;
                 npc.Shop = new ItemContainerComponent[npcShopData.Items.Length];
 
                 for (var i = 0; i < npcShopData.Items.Length; i++)
@@ -71,11 +86,12 @@ namespace Rhisis.World.Game.Factories.Internal
                     for (var j = 0; j < npcShopData.Items[i].Count && j < npc.Shop[i].MaxCapacity; j++)
                     {
                         ItemDescriptor item = npcShopData.Items[i][j];
+                        Item shopItem = _itemFactory.CreateItem(item.Id, item.Refine, item.Element, item.ElementRefine);
 
-                        npc.Shop[i].Items[j] = this._itemFactory.CreateItem(item.Id, item.Refine, item.Element, item.ElementRefine);
-                        npc.Shop[i].Items[j].Slot = j;
-                        npc.Shop[i].Items[j].UniqueId = j;
-                        npc.Shop[i].Items[j].Quantity = npc.Shop[i].Items[j].Data.PackMax;
+                        shopItem.Slot = j;
+                        shopItem.Quantity = shopItem.Data.PackMax;
+
+                        npc.Shop[i].SetItemAtIndex(shopItem, j);
                     }
                 }
             }

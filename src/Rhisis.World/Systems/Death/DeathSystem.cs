@@ -27,13 +27,13 @@ namespace Rhisis.World.Systems.Death
 
         public DeathSystem(ILogger<DeathSystem> logger, IOptions<WorldConfiguration> worldConfiguration, IGameResources gameResources, IMapManager mapManager, ITeleportSystem teleportSystem, IPlayerPacketFactory playerPacketFactory, IMoverPacketFactory moverPacketFactory)
         {
-            this._logger = logger;
-            this._worldConfiguration = worldConfiguration.Value;
-            this._gameResources = gameResources;
-            this._mapManager = mapManager;
-            this._teleportSystem = teleportSystem;
-            this._playerPacketFactory = playerPacketFactory;
-            this._moverPacketFactory = moverPacketFactory;
+            _logger = logger;
+            _worldConfiguration = worldConfiguration.Value;
+            _gameResources = gameResources;
+            _mapManager = mapManager;
+            _teleportSystem = teleportSystem;
+            _playerPacketFactory = playerPacketFactory;
+            _moverPacketFactory = moverPacketFactory;
         }
 
         /// <inheritdoc />
@@ -43,11 +43,11 @@ namespace Rhisis.World.Systems.Death
 
             if (revivalRegion == null)
             {
-                this._logger.LogError($"Cannot find any revival region for map '{player.Object.CurrentMap.Name}'.");
+                _logger.LogError($"Cannot find any revival region for map '{player.Object.CurrentMap.Name}'.");
                 return;
             }
 
-            decimal recoveryRate = this._gameResources.Penalities.GetRevivalPenality(player.Object.Level) / 100;
+            decimal recoveryRate = _gameResources.Penalities.GetRevivalPenality(player.Object.Level) / 100;
             var jobData = player.PlayerData.JobData;
 
             int strength = player.Attributes[DefineAttributes.STR];
@@ -55,33 +55,34 @@ namespace Rhisis.World.Systems.Death
             int dexterity = player.Attributes[DefineAttributes.DEX];
             int intelligence = player.Attributes[DefineAttributes.INT];
 
-            player.Health.Hp = (int)(HealthFormulas.GetMaxOriginHp(player.Object.Level, stamina, jobData.MaxHpFactor) * recoveryRate);
-            player.Health.Mp = (int)(HealthFormulas.GetMaxOriginMp(player.Object.Level, intelligence, jobData.MaxMpFactor, true) * recoveryRate);
-            player.Health.Fp = (int)(HealthFormulas.GetMaxOriginFp(player.Object.Level, stamina, dexterity, strength, jobData.MaxFpFactor, true) * recoveryRate);
+            player.Attributes[DefineAttributes.HP] = (int)(HealthFormulas.GetMaxOriginHp(player.Object.Level, stamina, jobData.MaxHpFactor) * recoveryRate);
+            player.Attributes[DefineAttributes.MP] = (int)(HealthFormulas.GetMaxOriginMp(player.Object.Level, intelligence, jobData.MaxMpFactor, true) * recoveryRate);
+            player.Attributes[DefineAttributes.FP] = (int)(HealthFormulas.GetMaxOriginFp(player.Object.Level, stamina, dexterity, strength, jobData.MaxFpFactor, true) * recoveryRate);
 
             if (player.Object.MapId != revivalRegion.MapId)
             {
-                IMapInstance revivalMap = this._mapManager.GetMap(revivalRegion.MapId);
+                IMapInstance revivalMap = _mapManager.GetMap(revivalRegion.MapId);
 
                 if (revivalMap == null)
                 {
-                    this._logger.LogError($"Cannot find revival map with id '{revivalRegion.MapId}'.");
-                    player.Connection.Server.DisconnectClient(player.Connection.Id);
+                    _logger.LogError($"Cannot find revival map with id '{revivalRegion.MapId}'.");
+                    // TODO: disconnect client
+                    //player.Connection.Server.DisconnectClient(player.Connection.Id);
                     return;
                 }
 
                 revivalRegion = revivalMap.GetRevivalRegion(revivalRegion.Key);
             }
 
-            this._teleportSystem.Teleport(player, revivalRegion.MapId, revivalRegion.RevivalPosition.X, null, revivalRegion.RevivalPosition.Z);
+            _teleportSystem.Teleport(player, revivalRegion.MapId, revivalRegion.RevivalPosition.X, null, revivalRegion.RevivalPosition.Z);
 
-            this._moverPacketFactory.SendMotion(player, ObjectMessageType.OBJMSG_ACC_STOP | ObjectMessageType.OBJMSG_STOP_TURN | ObjectMessageType.OBJMSG_STAND);
-            this._playerPacketFactory.SendPlayerRevival(player);
-            this._moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.HP, player.Health.Hp);
-            this._moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.MP, player.Health.Mp);
-            this._moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.FP, player.Health.Fp);
+            _moverPacketFactory.SendMotion(player, ObjectMessageType.OBJMSG_ACC_STOP | ObjectMessageType.OBJMSG_STOP_TURN | ObjectMessageType.OBJMSG_STAND);
+            _playerPacketFactory.SendPlayerRevival(player);
+            _moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.HP, player.Attributes[DefineAttributes.HP]);
+            _moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.MP, player.Attributes[DefineAttributes.MP]);
+            _moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.FP, player.Attributes[DefineAttributes.FP]);
 
-            this.ProcessDeathPenality(player);
+            ProcessDeathPenality(player);
         }
 
         /// <summary>
@@ -90,9 +91,9 @@ namespace Rhisis.World.Systems.Death
         /// <param name="player">Death player entity.</param>
         private void ProcessDeathPenality(IPlayerEntity player)
         {
-            if (this._worldConfiguration.Death.DeathPenalityEnabled)
+            if (_worldConfiguration.Death.DeathPenalityEnabled)
             {
-                decimal expLossPercent = this._gameResources.Penalities.GetDecExpPenality(player.Object.Level);
+                decimal expLossPercent = _gameResources.Penalities.GetDecExpPenality(player.Object.Level);
 
                 if (expLossPercent <= 0)
                     return;
@@ -102,9 +103,9 @@ namespace Rhisis.World.Systems.Death
 
                 if (player.PlayerData.Experience < 0)
                 {
-                    if (this._gameResources.Penalities.GetLevelDownPenality(player.Object.Level))
+                    if (_gameResources.Penalities.GetLevelDownPenality(player.Object.Level))
                     {
-                        CharacterExpTableData previousLevelExp = this._gameResources.ExpTables.GetCharacterExp(player.Object.Level - 1);
+                        CharacterExpTableData previousLevelExp = _gameResources.ExpTables.GetCharacterExp(player.Object.Level - 1);
 
                         player.Object.Level--;
                         player.PlayerData.Experience = previousLevelExp.Exp + player.PlayerData.Experience;
@@ -115,7 +116,7 @@ namespace Rhisis.World.Systems.Death
                     }
                 }
 
-                this._playerPacketFactory.SendPlayerExperience(player);
+                _playerPacketFactory.SendPlayerExperience(player);
             }
         }
     }

@@ -20,51 +20,62 @@ namespace Rhisis.World.Handlers
         /// <param name="inventorySystem">Inventory System.</param>
         public InventoryHandler(IInventorySystem inventorySystem)
         {
-            this._inventorySystem = inventorySystem;
+            _inventorySystem = inventorySystem;
         }
 
         /// <summary>
         /// Handles the move item request.
         /// </summary>
-        /// <param name="client"></param>
+        /// <param name="serverClient"></param>
         /// <param name="packet"></param>
         [HandlerAction(PacketType.MOVEITEM)]
-        public void OnMoveItem(IWorldClient client, MoveItemPacket packet)
+        public void OnMoveItem(IWorldServerClient serverClient, MoveItemPacket packet)
         {
-            this._inventorySystem.MoveItem(client.Player, packet.SourceSlot, packet.DestinationSlot);
+            _inventorySystem.MoveItem(serverClient.Player, packet.SourceSlot, packet.DestinationSlot);
         }
 
         /// <summary>
         /// Handles the equip/unequip request.
         /// </summary>
-        /// <param name="client"></param>
+        /// <param name="serverClient"></param>
         /// <param name="packet"></param>
         [HandlerAction(PacketType.DOEQUIP)]
-        public void OnDoEquip(IWorldClient client, EquipItemPacket packet)
+        public void OnDoEquip(IWorldServerClient serverClient, EquipItemPacket packet)
         {
-            this._inventorySystem.EquipItem(client.Player, packet.UniqueId, packet.Part);
+            _inventorySystem.EquipItem(serverClient.Player, packet.UniqueId, packet.Part);
         }
 
         /// <summary>
         /// Handles the drop item request.
         /// </summary>
-        /// <param name="client"></param>
+        /// <param name="serverClient"></param>
         /// <param name="packet"></param>
         [HandlerAction(PacketType.DROPITEM)]
-        public void OnDropItem(IWorldClient client, DropItemPacket packet)
+        public void OnDropItem(IWorldServerClient serverClient, DropItemPacket packet)
         {
-            this._inventorySystem.DropItem(client.Player, packet.ItemUniqueId, packet.ItemQuantity);
+            _inventorySystem.DropItem(serverClient.Player, packet.ItemUniqueId, packet.ItemQuantity);
+        }
+
+        /// <summary>
+        /// Handles the delete item request.
+        /// </summary>
+        /// <param name="serverClient"></param>
+        /// <param name="packet"></param>
+        [HandlerAction(PacketType.REMOVEINVENITEM)]
+        public void OnDeleteItem(IWorldServerClient serverClient, RemoveInventoryItemPacket packet)
+        {
+            _inventorySystem.DeleteItem(serverClient.Player, packet.ItemUniqueId, packet.ItemQuantity);
         }
 
         /// <summary>
         /// Handles the use item request.
         /// </summary>
-        /// <param name="client"></param>
+        /// <param name="serverClient"></param>
         /// <param name="packet"></param>
         [HandlerAction(PacketType.DOUSEITEM)]
-        public void OnUseItem(IWorldClient client, DoUseItemPacket packet)
+        public void OnUseItem(IWorldServerClient serverClient, DoUseItemPacket packet)
         {
-            this._inventorySystem.UseItem(client.Player, packet.UniqueItemId, packet.Part);
+            _inventorySystem.UseItem(serverClient.Player, packet.UniqueItemId, packet.Part);
         }
     }
 }

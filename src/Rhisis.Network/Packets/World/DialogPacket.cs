@@ -1,4 +1,4 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.World
 {
@@ -7,12 +7,12 @@ namespace Rhisis.Network.Packets.World
         /// <summary>
         /// Gets the dialog owner object id.
         /// </summary>
-        public uint ObjectId { get; set; }
+        public uint ObjectId { get; private set; }
 
         /// <summary>
         /// Gets the dialog key.
         /// </summary>
-        public string Key { get; set; }
+        public string Key { get; private set; }
 
         /// <summary>
         /// Gets the first parameter.
@@ -20,32 +20,32 @@ namespace Rhisis.Network.Packets.World
         /// <remarks>
         /// Figure out what this value is.
         /// </remarks>
-        public int Param { get; set; }
+        public int Param { get; private set; }
 
         /// <summary>
         /// Gets the dialog quest id.
         /// </summary>
-        public int QuestId { get; set; }
+        public int QuestId { get; private set; }
 
         /// <summary>
         /// Gets the quest mover id.
         /// </summary>
-        public uint MoverId { get; set; }
+        public uint MoverId { get; private set; }
 
         /// <summary>
         /// Gets the quest player id.
         /// </summary>
-        public uint PlayerId { get; set; }
+        public uint PlayerId { get; private set; }
 
         /// <inheritdoc />
         public void Deserialize(INetPacketStream packet)
         {
-            this.ObjectId = packet.Read<uint>();
-            this.Key = packet.Read<string>();
-            this.Param = packet.Read<int>();
-            this.QuestId = packet.Read<int>();
-            this.MoverId = packet.Read<uint>();
-            this.PlayerId = packet.Read<uint>();
+            ObjectId = packet.Read<uint>();
+            Key = packet.Read<string>();
+            Param = packet.Read<int>();
+            QuestId = packet.Read<int>();
+            MoverId = packet.Read<uint>();
+            PlayerId = packet.Read<uint>();
         }
     }
 }

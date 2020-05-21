@@ -1,10 +1,7 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.World
 {
-    /// <summary>
-    /// Defines the <see cref="PlayerDestObjectPacket"/> structure.
-    /// </summary>
     public class PlayerDestObjectPacket : IPacketDeserializer
     {
         /// <summary>
@@ -20,8 +17,8 @@ namespace Rhisis.Network.Packets.World
         /// <inheritdoc />
         public void Deserialize(INetPacketStream packet)
         {
-            this.TargetObjectId = packet.Read<uint>();
-            this.Distance = packet.Read<float>();
+            TargetObjectId = packet.Read<uint>();
+            Distance = packet.Read<float>();
         }
     }
 }

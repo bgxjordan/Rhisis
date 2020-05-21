@@ -23,7 +23,49 @@ namespace Rhisis.CLI.Commands.Configure
         /// <summary>
         /// Gets the real configuration file.
         /// </summary>
-        private string ConfigurationFile => !string.IsNullOrEmpty(this.ClusterConfigurationFile) ? this.ClusterConfigurationFile : ConfigurationConstants.ClusterServerPath;
+        private string ConfigurationFile => !string.IsNullOrEmpty(ClusterConfigurationFile) ? ClusterConfigurationFile : ConfigurationConstants.ClusterServerPath;
+
+        /// <summary>
+        /// Executes the "configure cluster" command.
+        /// </summary>
+        public void OnExecute()
+        {
+            var clusterServerConfiguration = ConfigurationHelper.Load<ClusterConfiguration>(ConfigurationFile, ConfigurationConstants.ClusterServer);
+            var coreServerConfiguration = ConfigurationHelper.Load<CoreConfiguration>(ConfigurationFile, ConfigurationConstants.CoreServer);
+            var worldClusterServerConfiguration = ConfigurationHelper.Load<WorldClusterConfiguration>(ConfigurationFile, ConfigurationConstants.WorldClusterServer);
+            var clusterConfiguration = new ObjectConfigurationFiller<ClusterConfiguration>(clusterServerConfiguration);
+            var coreConfiguration = new ObjectConfigurationFiller<CoreConfiguration>(coreServerConfiguration);
+            var worldClusterConfiguration = new ObjectConfigurationFiller<WorldClusterConfiguration>(worldClusterServerConfiguration);
+
+            Console.WriteLine("----- Core Server -----");
+            coreConfiguration.Fill();
+            coreConfiguration.Value.Password = MD5.GetMD5Hash(coreConfiguration.Value.Password);
+            
+            Console.WriteLine("----- Cluster Server -----");
+            clusterConfiguration.Fill();
+            worldClusterConfiguration.Fill();
+            worldClusterConfiguration.Value.Password = MD5.GetMD5Hash(worldClusterConfiguration.Value.Password);
+
+            Console.WriteLine("##### Configuration review #####");
+            coreConfiguration.Show("Core server configuration");
+            clusterConfiguration.Show("Cluster Server configuration");
+            worldClusterConfiguration.Show("World cluster server configuration");
+
+            bool response = _consoleHelper.AskConfirmation("Save this configuration?");
+
+            if (response)
+            {
+                var configuration = new Dictionary<string, object>
+                {
+                    { ConfigurationConstants.ClusterServer, clusterConfiguration.Value },
+                    { ConfigurationConstants.WorldClusterServer, worldClusterConfiguration.Value },
+                    { ConfigurationConstants.CoreServer, coreConfiguration.Value }
+                };
+
+                ConfigurationHelper.Save(ConfigurationFile, configuration);
+                Console.WriteLine($"Cluster Server configuration saved in {ConfigurationFile}!");
+            }
+        }
 
         /// <summary>
         /// Creates a new <see cref="ClusterServerConfigurationCommand"/> instance.
@@ -31,42 +73,7 @@ namespace Rhisis.CLI.Commands.Configure
         /// <param name="consoleHelper">Console helpers.</param>
         public ClusterServerConfigurationCommand(ConsoleHelper consoleHelper)
         {
-            this._consoleHelper = consoleHelper;
-        }
-
-        /// <summary>
-        /// Executes the "configure cluster" command.
-        /// </summary>
-        public void OnExecute()
-        {
-            var clusterServerConfiguration = ConfigurationHelper.Load<ClusterConfiguration>(this.ConfigurationFile, ConfigurationConstants.ClusterServer);
-            var coreServerConfiguratinon = ConfigurationHelper.Load<CoreConfiguration>(this.ConfigurationFile, ConfigurationConstants.CoreServer);
-            var clusterConfiguration = new ObjectConfigurationFiller<ClusterConfiguration>(clusterServerConfiguration);
-            var coreConfiguration = new ObjectConfigurationFiller<CoreConfiguration>(coreServerConfiguratinon);
-
-            Console.WriteLine("----- Cluster Server -----");
-            clusterConfiguration.Fill();
-            Console.WriteLine("----- Core Server -----");
-            coreConfiguration.Fill();
-            coreConfiguration.Value.Password = MD5.GetMD5Hash(coreConfiguration.Value.Password);
-
-            Console.WriteLine("##### Configuration review #####");
-            clusterConfiguration.Show("Cluster Server configuration");
-            coreConfiguration.Show("Core server configuration");
-
-            bool response = this._consoleHelper.AskConfirmation("Save this configuration?");
-
-            if (response)
-            {
-                var configuration = new Dictionary<string, object>
-                {
-                    { ConfigurationConstants.ClusterServer, clusterConfiguration.Value },
-                    { ConfigurationConstants.CoreServer, coreConfiguration.Value }
-                };
-
-                ConfigurationHelper.Save(this.ConfigurationFile, configuration);
-                Console.WriteLine($"Cluster Server configuration saved in {this.ConfigurationFile}!");
-            }
+            _consoleHelper = consoleHelper;
         }
     }
 }

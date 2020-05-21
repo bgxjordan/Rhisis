@@ -18,5 +18,19 @@ namespace Rhisis.World.Systems.Inventory
         /// <param name="player"></param>
         /// <param name="blinkwing"></param>
         void UseBlinkwingItem(IPlayerEntity player, Item blinkwing);
+
+        /// <summary>
+        /// Uses fireworks items.
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="magicItem"></param>
+        void UseMagicItem(IPlayerEntity player, Item magicItem);
+
+        /// <summary>
+        /// Uses perin items.
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="perinItem"></param>
+        void UsePerin(IPlayerEntity player, Item perinItem);
     }
 }

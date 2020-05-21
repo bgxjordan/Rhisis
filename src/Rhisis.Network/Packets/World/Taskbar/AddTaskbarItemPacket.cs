@@ -1,8 +1,8 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.World.Taskbar
 {
-    public class AddTaskbarItemPacket : AddTaskbarAppletPacket, IPacketDeserializer
+    public class AddTaskbarItemPacket : AddTaskbarAppletPacket
     {
         /// <summary>
         /// Gets the slot level index.
@@ -12,7 +12,7 @@ namespace Rhisis.Network.Packets.World.Taskbar
         /// <inheritdoc />
         public override void Deserialize(INetPacketStream packet)
         {
-            this.SlotLevelIndex = packet.Read<byte>();
+            SlotLevelIndex = packet.Read<byte>();
             base.Deserialize(packet);
         }
     }

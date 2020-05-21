@@ -8,7 +8,7 @@
         /// <summary>
         /// Gets the CoreServer configuration key.
         /// </summary>
-        public const string CoreServer = "core";
+        public const string CoreServer = "coreServer";
 
         /// <summary>
         /// Gets the LoginServer configuration key.
@@ -21,7 +21,7 @@
         public const string LoginServerPath = "config/login.json";
 
         /// <summary>
-        /// Gets the ClusterServer configuraiton key.
+        /// Gets the ClusterServer configuration key.
         /// </summary>
         public const string ClusterServer = "clusterServer";
 
@@ -34,6 +34,11 @@
         /// Gets the WorldServer configuration key.
         /// </summary>
         public const string WorldServer = "worldServer";
+        
+        /// <summary>
+        /// Gets the WorldClusterServer configuration key.
+        /// </summary>
+        public const string WorldClusterServer = "worldClusterServer";
 
         /// <summary>
         /// Gets the WorldServer configuration file path.
@@ -44,6 +49,11 @@
         /// Gets the Database configuration file path.
         /// </summary>
         public const string DatabasePath = "config/database.json";
+
+        /// <summary>
+        /// Gets the Database configuration key.
+        /// </summary>
+        public const string DatabaseConfiguration = "databaseConfiguration";
 
         /// <summary>
         /// Prevents from creating a <see cref="ConfigurationConstants"/> instance from outside.

@@ -4,11 +4,61 @@ This is the changelog of the Rhisis project. All notable changes to this project
 
 ## [Unreleased]
 
-## [0.4.0](https://github.com/Eastrall/Rhisis/releases/tag/v0.4) - 2019-09-30
+## [0.5.0](https://github.com/Eastrall/Rhisis/releases/tag/v0.5) - 2020-05-30
+
+## [Released]
+
+## [0.4.2](https://github.com/Eastrall/Rhisis/releases/tag/v0.4.2) - 2020-05-20
+
+### Fixes
+
+- ![world] Fix string encoding ([#389](https://github.com/Eastrall/Rhisis/pull/389))
+- ![world] Fix consumable items ([#392](https://github.com/Eastrall/Rhisis/pull/392))
+- ![world] Fix sell item at NPC shops ([#392](https://github.com/Eastrall/Rhisis/pull/392))
+- ![world] Sold items doesn't come back to inventory anymore ([#392](https://github.com/Eastrall/Rhisis/pull/392))
+- ![world] Fix item equip/unequip process when equiping a dropped item armor ([#392](https://github.com/Eastrall/Rhisis/pull/392))
+- ![world] Fix item drop from inventory ([#393](https://github.com/Eastrall/Rhisis/pull/393))
+
+## [0.4.1](https://github.com/Eastrall/Rhisis/releases/tag/v0.4.1) - 2020-05-18
+
+### Fixes
+
+- ![login] Fix server crash when a client logs in with invalid credentials ([#358](https://github.com/Eastrall/Rhisis/pull/358))
+- ![world] Fix NPC shops crash ([#374](https://github.com/Eastrall/Rhisis/pull/374))
+- ![world] Fix NPC oral dialog texts ([#365](https://github.com/Eastrall/Rhisis/pull/365))
+- ![world] Fix NPC shop purchase item with error "User ID already exists" ([#382](https://github.com/Eastrall/Rhisis/pull/382))
+- ![world] Fix inventory saving issue ([#372](https://github.com/Eastrall/Rhisis/issues/372))
+- ![cluster] Fix character with dual weapons on character selection screen ([#373](https://github.com/Eastrall/Rhisis/issues/373))
+
+
+## [0.4.0](https://github.com/Eastrall/Rhisis/releases/tag/v0.4) - 2020-04-29
 
 ### Fixes
 
 - ![login] Optimize authentication SQL request ([#259](https://github.com/Eastrall/Rhisis/pull/259))
+- ![world] Fix inventory decrease item ([#278](https://github.com/Eastrall/Rhisis/pull/278))
+- ![world] Fix teleport bug for visible entities ([#283](https://github.com/Eastrall/Rhisis/pull/283))
+- ![world] Rework inventory system ([#]())
+- ![common] Update WorldServer default port ([#282](https://github.com/Eastrall/Rhisis/pull/282))
+
+### Features
+
+- ![world] Delete item from inventory ([#278](https://github.com/Eastrall/Rhisis/pull/278))
+- ![world] Add create monster admin command ([#280](https://github.com/Eastrall/Rhisis/pull/280))
+- ![world] Gives to himself exp via Debug Panel as a GM/Admin ([#281](https://github.com/Eastrall/Rhisis/pull/281))
+- ![world] Quest system ([#292](https://github.com/Eastrall/Rhisis/pull/292))
+- ![world] Skill sytem ([#333](https://github.com/Eastrall/Rhisis/pull/333)) ([#335](https://github.com/Eastrall/Rhisis/pull/335))
+- ![world] Job System with job change ([#342](https://github.com/Eastrall/Rhisis/pull/342))
+- ![world] Add new GM commands
+  - OneKill / NoOneKill command ([#322](https://github.com/Eastrall/Rhisis/pull/322))
+  - Around Kill ([#323](https://github.com/Eastrall/Rhisis/pull/323)
+  - Summon command ([#324](https://github.com/Eastrall/Rhisis/pull/324))
+  - Undying (God Mode) command ([#325](https://github.com/Eastrall/Rhisis/pull/325))
+  - Freeze command ([#328](https://github.com/Eastrall/Rhisis/pull/328))
+  - System message command (([#329](https://github.com/Eastrall/Rhisis/pull/329))
+  - Count command (counts the connected players) ([#330](https://github.com/Eastrall/Rhisis/pull/330))
+  - Invisible command ([#331](https://github.com/Eastrall/Rhisis/pull/331))
+  - Exp Up stop command ([#332](https://github.com/Eastrall/Rhisis/pull/332))
 
 ### BREAKING CHANGES
 
@@ -18,8 +68,9 @@ This is the changelog of the Rhisis project. All notable changes to this project
 	- Refactoring systems
 	- Refactoring packet factories
 	- Refactoring resource loaders
-
-## [Released]
+- ![database] Remove repository pattern ([#347](https://github.com/Eastrall/Rhisis/pull/347))
+  - `IDatabase` renamed into `IRhisisDatabase`
+  - Related data should be loaded manually when needed using the `IQueryable<TEntity>.Include()` method from Entity Framework Core : https://docs.microsoft.com/en-us/ef/core/querying/related-data
 
 ## [0.3.0](https://github.com/Eastrall/Rhisis/releases/tag/v0.3) - 2019-06-30
 
@@ -158,3 +209,5 @@ This is the changelog of the Rhisis project. All notable changes to this project
 [cluster]: https://img.shields.io/badge/-cluster-brightgreen.svg "cluster-component"
 [login]: https://img.shields.io/badge/-login-brightgreen.svg "login-component"
 [tools]: https://img.shields.io/badge/-tools-brightgreen.svg "tools-component"
+[common]: https://img.shields.io/badge/-common-brightgreen.svg "common-components"
+[database]: https://img.shields.io/badge/-database-brightgreen.svg "database-component"

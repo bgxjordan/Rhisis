@@ -23,7 +23,7 @@ namespace Rhisis.Core.Structures.Configuration.World
         /// Gets or sets the port.
         /// </summary>
         [DataMember(Name = "port")]
-        [DefaultValue(23000)]
+        [DefaultValue(5400)]
         [Display(Name = "World server listening port", Order = 1)]
         public int Port { get; set; }
 
@@ -89,6 +89,12 @@ namespace Rhisis.Core.Structures.Configuration.World
         public MailConfiguration Mails { get; set; } = new MailConfiguration();
 
         /// <summary>
+        /// Gets or sets the mails configuration.
+        /// </summary>
+        [DataMember(Name = "perin")]
+        public PerinConfiguration Perin { get; set; } = new PerinConfiguration();
+
+        /// <summary>
         /// Gets or sets the Style Customization settings.
         /// </summary>
         [DataMember(Name = "customization")]
@@ -111,7 +117,7 @@ namespace Rhisis.Core.Structures.Configuration.World
         /// </summary>
         public WorldConfiguration()
         {
-            this.Systems = new Dictionary<string, bool>();
+            Systems = new Dictionary<string, bool>();
         }
     }
 }

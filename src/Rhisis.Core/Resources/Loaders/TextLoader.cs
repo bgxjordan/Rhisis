@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,37 +19,35 @@ namespace Rhisis.Core.Resources.Loaders
         /// <param name="cache">Memory cache.</param>
         public TextLoader(ILogger<TextLoader> logger, IMemoryCache cache)
         {
-            this._logger = logger;
-            this._cache = cache;
+            _logger = logger;
+            _cache = cache;
         }
 
         /// <inheritdoc />
         public void Load()
         {
-            var texts = new Dictionary<string, string>();
+            var texts = new ConcurrentDictionary<string, string>();
             var textFiles = from x in Directory.GetFiles(GameResourcesConstants.Paths.ResourcePath, "*.*", SearchOption.AllDirectories)
                             where TextFile.Extensions.Contains(Path.GetExtension(x)) && x.EndsWith(".txt.txt")
                             select x;
 
             foreach (var textFilePath in textFiles)
             {
-                using (var textFile = new TextFile(textFilePath))
+                using var textFile = new TextFile(textFilePath);
+                foreach (var text in textFile.Texts)
                 {
-                    foreach (var text in textFile.Texts)
+                    if (!texts.ContainsKey(text.Key) && text.Value != null)
+                        texts.TryAdd(text.Key, text.Value);
+                    else
                     {
-                        if (!texts.ContainsKey(text.Key) && text.Value != null)
-                            texts.Add(text.Key, text.Value);
-                        else
-                        {
-                            this._logger.LogWarning(GameResourcesConstants.Errors.ObjectIgnoredMessage, "Text", text.Key,
-                                (text.Value == null) ? "cannot get the value" : "already declared");
-                        }
+                        _logger.LogWarning(GameResourcesConstants.Errors.ObjectIgnoredMessage, "Text", text.Key,
+                            (text.Value == null) ? "cannot get the value" : "already declared");
                     }
                 }
             }
 
-            this._cache.Set(GameResourcesConstants.Texts, texts);
-            this._logger.LogInformation("-> {0} texts found.", texts.Count);
+            _cache.Set(GameResourcesConstants.Texts, texts);
+            _logger.LogInformation("-> {0} texts found.", texts.Count);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.Cluster
 {
@@ -8,7 +8,7 @@ namespace Rhisis.Network.Packets.Cluster
 
         public void Deserialize(INetPacketStream packet)
         {
-            this.Time = packet.Read<uint>();
+            Time = packet.Read<uint>();
         }
     }
 }

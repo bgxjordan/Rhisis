@@ -5,12 +5,22 @@ using Rhisis.Core.Resources;
 using Rhisis.Core.Structures.Game;
 using Rhisis.World.Game.Entities;
 using Rhisis.World.Packets;
+using System.Collections.Generic;
 
-namespace Rhisis.World.Systems.Leveling
+namespace Rhisis.World.Systems.Experience
 {
     [Injectable]
     public sealed class ExperienceSystem : IExperienceSystem
     {
+        private static readonly IReadOnlyDictionary<DefineJob.JobType, int> _experienceLevelLimits = new Dictionary<DefineJob.JobType, int>()
+        {
+            { DefineJob.JobType.JTYPE_BASE, (int)DefineJob.JobMax.MAX_JOB_LEVEL },
+            { DefineJob.JobType.JTYPE_EXPERT, (int)DefineJob.JobMax.MAX_JOB_LEVEL + (int)DefineJob.JobMax.MAX_EXP_LEVEL },
+            { DefineJob.JobType.JTYPE_PRO, (int)DefineJob.JobMax.MAX_LEVEL },
+            { DefineJob.JobType.JTYPE_MASTER, (int)DefineJob.JobMax.MAX_LEVEL },
+            { DefineJob.JobType.JTYPE_HERO, (int)DefineJob.JobMax.MAX_LEGEND_LEVEL }
+        };
+
         private readonly IGameResources _gameResources;
         private readonly IMoverPacketFactory _moverPacketFactory;
         private readonly IPlayerPacketFactory _playerPacketFactory;
@@ -22,28 +32,33 @@ namespace Rhisis.World.Systems.Leveling
         /// <param name="playerPacketFactory">Player packet factory.</param>
         public ExperienceSystem(IGameResources gameResources, IMoverPacketFactory moverPacketFactory, IPlayerPacketFactory playerPacketFactory)
         {
-            this._gameResources = gameResources;
-            this._moverPacketFactory = moverPacketFactory;
-            this._playerPacketFactory = playerPacketFactory;
+            _gameResources = gameResources;
+            _moverPacketFactory = moverPacketFactory;
+            _playerPacketFactory = playerPacketFactory;
         }
 
         /// <inheritdoc />
         public void GiveExeperience(IPlayerEntity player, long experience)
         {
-            long exp = this.CalculateExtraExperience(player, experience);
+            if (player.PlayerData.Mode.HasFlag(ModeType.MODE_EXPUP_STOP))
+            {
+                return;
+            }
+            
+            var exp = CalculateExtraExperience(player, experience);
 
             // TODO: experience to party
 
-            if (this.GiveExperienceToPlayer(player, exp))
+            if (GiveExperienceToPlayer(player, exp))
             {
-                this._moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.HP, player.Health.Hp);
-                this._moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.MP, player.Health.Mp);
-                this._moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.FP, player.Health.Fp);
-                this._playerPacketFactory.SendPlayerSetLevel(player, player.Object.Level);
-                this._playerPacketFactory.SendPlayerStatsPoints(player);
+                _moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.HP, player.Attributes[DefineAttributes.HP]);
+                _moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.MP, player.Attributes[DefineAttributes.MP]);
+                _moverPacketFactory.SendUpdateAttributes(player, DefineAttributes.FP, player.Attributes[DefineAttributes.FP]);
+                _playerPacketFactory.SendPlayerSetLevel(player, player.Object.Level);
+                _playerPacketFactory.SendPlayerStatsPoints(player);
             }
 
-            this._playerPacketFactory.SendPlayerExperience(player);
+            _playerPacketFactory.SendPlayerExperience(player);
             // TODO: send packet to friends, messenger, guild, couple, party, etc...
         }
 
@@ -55,18 +70,27 @@ namespace Rhisis.World.Systems.Leveling
         /// <returns>True if the player has level up; false otherwise.</returns>
         private bool GiveExperienceToPlayer(IPlayerEntity player, long experience)
         {
-            int nextLevel = player.Object.Level + 1;
-            CharacterExpTableData nextLevelExpTable = this._gameResources.ExpTables.GetCharacterExp(nextLevel);
+            if (HasReachedMaxLevel(player))
+            {
+                player.PlayerData.Experience = 0;
+
+                return false;
+            }
+
+            var nextLevel = player.Object.Level + 1;
+            CharacterExpTableData nextLevelExpTable = _gameResources.ExpTables.GetCharacterExp(nextLevel);
             player.PlayerData.Experience += experience;
 
             if (player.PlayerData.Experience >= nextLevelExpTable.Exp) // Level up
             {
-                long remainingExp = player.PlayerData.Experience - nextLevelExpTable.Exp;
+                var remainingExp = player.PlayerData.Experience - nextLevelExpTable.Exp;
 
-                this.ProcessLevelUp(player, (ushort)nextLevelExpTable.Gp);
+                ProcessLevelUp(player, (ushort)nextLevelExpTable.Gp);
 
                 if (remainingExp > 0)
-                    this.GiveExperienceToPlayer(player, remainingExp); // Multiple level up
+                {
+                    GiveExperienceToPlayer(player, remainingExp); // Multiple level up
+                }
 
                 return true;
             }
@@ -98,19 +122,34 @@ namespace Rhisis.World.Systems.Leveling
 
             if (player.Object.Level != player.PlayerData.DeathLevel)
             {
-                player.Statistics.SkillPoints += (ushort)(((player.Object.Level - 1) / 20) + 2);
+                player.Statistics.SkillPoints += (ushort)((player.Object.Level - 1) / 20 + 2);
                 player.Statistics.StatPoints += statPoints;
             }
 
-            int strength = player.Attributes[DefineAttributes.STR];
-            int stamina = player.Attributes[DefineAttributes.STA];
-            int dexterity = player.Attributes[DefineAttributes.DEX];
-            int intelligence = player.Attributes[DefineAttributes.INT];
+            var strength = player.Attributes[DefineAttributes.STR];
+            var stamina = player.Attributes[DefineAttributes.STA];
+            var dexterity = player.Attributes[DefineAttributes.DEX];
+            var intelligence = player.Attributes[DefineAttributes.INT];
 
             player.PlayerData.Experience = 0;
-            player.Health.Hp = HealthFormulas.GetMaxOriginHp(player.Object.Level, stamina, player.PlayerData.JobData.MaxHpFactor);
-            player.Health.Mp = HealthFormulas.GetMaxOriginMp(player.Object.Level, intelligence, player.PlayerData.JobData.MaxMpFactor, true);
-            player.Health.Fp = HealthFormulas.GetMaxOriginFp(player.Object.Level, stamina, dexterity, strength, player.PlayerData.JobData.MaxFpFactor, true);
+            player.Attributes[DefineAttributes.HP] = HealthFormulas.GetMaxOriginHp(player.Object.Level, stamina, player.PlayerData.JobData.MaxHpFactor);
+            player.Attributes[DefineAttributes.MP] = HealthFormulas.GetMaxOriginMp(player.Object.Level, intelligence, player.PlayerData.JobData.MaxMpFactor, true);
+            player.Attributes[DefineAttributes.FP] = HealthFormulas.GetMaxOriginFp(player.Object.Level, stamina, dexterity, strength, player.PlayerData.JobData.MaxFpFactor, true);
+        }
+
+        /// <summary>
+        /// Checks if the player has reached the maximum level for its job.
+        /// </summary>
+        /// <param name="player">Current player.</param>
+        /// <returns>True if the player has reached the maximum level for its job; false otherwise.</returns>
+        private bool HasReachedMaxLevel(IPlayerEntity player)
+        {
+            if (!_experienceLevelLimits.TryGetValue(player.PlayerData.JobData.Type, out int limitLevel))
+            {
+                return false;
+            }
+
+            return player.Object.Level >= limitLevel;
         }
     }
 }

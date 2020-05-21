@@ -1,5 +1,4 @@
-﻿using Ether.Network.Packets;
-using Ether.Network.Server;
+﻿using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -8,12 +7,10 @@ using Rhisis.Cluster.Packets;
 using Rhisis.Core.Resources;
 using Rhisis.Core.Resources.Loaders;
 using Rhisis.Core.Structures.Configuration;
+using Rhisis.Database;
 using Rhisis.Network;
-using Rhisis.Network.Core;
 using Sylver.HandlerInvoker;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Sylver.Network.Server;
 
 namespace Rhisis.Cluster
 {
@@ -22,21 +19,15 @@ namespace Rhisis.Cluster
     /// </summary>
     public class ClusterServer : NetServer<ClusterClient>, IClusterServer
     {
-        private const int MaxConnections = 500;
         private const int ClientBufferSize = 128;
         private const int ClientBacklog = 50;
         private readonly ILogger<ClusterServer> _logger;
         private readonly IGameResources _gameResources;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IRhisisDatabase _database;
 
         /// <inheritdoc />
         public ClusterConfiguration ClusterConfiguration { get; }
-
-        /// <inheritdoc />
-        public IList<WorldServerInfo> WorldServers { get; } = new List<WorldServerInfo>();
-
-        /// <inheritdoc />
-        protected override IPacketProcessor PacketProcessor { get; } = new FlyffPacketProcessor();
 
         /// <summary>
         /// Creates a new <see cref="ClusterServer"/> instance.
@@ -45,47 +36,54 @@ namespace Rhisis.Cluster
         /// <param name="clusterConfiguration">Cluster Server configuration.</param>
         /// <param name="gameResources">Game resources.</param>
         /// <param name="serviceProvider">Service provider.</param>
-        public ClusterServer(ILogger<ClusterServer> logger, IOptions<ClusterConfiguration> clusterConfiguration, IGameResources gameResources, IServiceProvider serviceProvider)
+        public ClusterServer(ILogger<ClusterServer> logger, IOptions<ClusterConfiguration> clusterConfiguration, IGameResources gameResources, IServiceProvider serviceProvider, IRhisisDatabase database)
         {
-            this._logger = logger;
-            this.ClusterConfiguration = clusterConfiguration.Value;
-            this._gameResources = gameResources;
-            this._serviceProvider = serviceProvider;
-            this.Configuration.Host = this.ClusterConfiguration.Host;
-            this.Configuration.Port = this.ClusterConfiguration.Port;
-            this.Configuration.MaximumNumberOfConnections = MaxConnections;
-            this.Configuration.Backlog = ClientBacklog;
-            this.Configuration.BufferSize = ClientBufferSize;
-            this.Configuration.Blocking = false;
+            _logger = logger;
+            ClusterConfiguration = clusterConfiguration.Value;
+            _gameResources = gameResources;
+            _serviceProvider = serviceProvider;
+            _database = database;
+            PacketProcessor = new FlyffPacketProcessor();
+            ServerConfiguration = new NetServerConfiguration(ClusterConfiguration.Host,
+                ClusterConfiguration.Port,
+                ClientBacklog,
+                ClientBufferSize);
         }
 
         /// <inheritdoc />
-        protected override void Initialize()
+        protected override void OnBeforeStart()
         {
-            this._gameResources.Load(typeof(DefineLoader), typeof(JobLoader));
-            this._logger.LogInformation($"'{this.ClusterConfiguration.Name}' cluster server is started and listen on {this.Configuration.Host}:{this.Configuration.Port}."); 
+            if (!_database.IsAlive())
+            {
+                throw new InvalidProgramException($"Cannot start {nameof(ClusterServer)}. Failed to reach database.");
+            }
+
+            _gameResources.Load(typeof(DefineLoader), typeof(JobLoader));
+        }
+
+        /// <inheritdoc />
+        protected override void OnAfterStart()
+        {
+            _logger.LogInformation($"'{ClusterConfiguration.Name}' cluster server is started and listening on {ServerConfiguration.Host}:{ServerConfiguration.Port}.");
         }
 
         /// <inheritdoc />
         protected override void OnClientConnected(ClusterClient client)
         {
-            this._logger.LogInformation($"New client connected to {nameof(ClusterServer)} from {client.RemoteEndPoint}.");
+            _logger.LogInformation($"New client connected to {nameof(ClusterServer)} from {client.Socket.RemoteEndPoint}.");
 
             client.Initialize(this,
-                this._serviceProvider.GetRequiredService<ILogger<ClusterClient>>(),
-                this._serviceProvider.GetRequiredService<IHandlerInvoker>(),
-                this._serviceProvider.GetRequiredService<IClusterPacketFactory>());
+                _serviceProvider.GetRequiredService<ILogger<ClusterClient>>(),
+                _serviceProvider.GetRequiredService<IHandlerInvoker>());
+
+            var clusterPacketFactory =  _serviceProvider.GetRequiredService<IClusterPacketFactory>();
+            clusterPacketFactory.SendWelcome(client);
         }
 
         /// <inheritdoc />
-        protected override void OnClientDisconnected(ClusterClient client) 
-            => this._logger.LogInformation($"Client disconnected from {client.RemoteEndPoint}.");
-
-        /// <inheritdoc />
-        protected override void OnError(Exception exception) 
-            => this._logger.LogInformation($"{nameof(ClusterServer)} socket error: {exception.Message}");
-
-        /// <inheritdoc />
-        public WorldServerInfo GetWorldServerById(int id) => this.WorldServers.FirstOrDefault(x => x.Id == id);
+        protected override void OnClientDisconnected(ClusterClient client)
+        {
+            _logger.LogInformation($"Client disconnected from {client.Socket.RemoteEndPoint}.");
+        }
     }
 }

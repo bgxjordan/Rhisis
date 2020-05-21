@@ -1,9 +1,9 @@
-﻿using Ether.Network.Packets;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Rhisis.Network.Packets;
 using Rhisis.World.Client;
 using Sylver.HandlerInvoker;
 using Sylver.HandlerInvoker.Attributes;
+using Sylver.Network.Data;
 using System;
 
 namespace Rhisis.World.Handlers
@@ -21,17 +21,17 @@ namespace Rhisis.World.Handlers
         /// <param name="handlerInvoker">Handler invoker.</param>
         public SnapshotHandler(ILogger<SnapshotHandler> logger, IHandlerInvoker handlerInvoker)
         {
-            this._logger = logger;
-            this._handlerInvoker = handlerInvoker;
+            _logger = logger;
+            _handlerInvoker = handlerInvoker;
         }
 
         /// <summary>
         /// Receives and handles a snapshot.
         /// </summary>
-        /// <param name="client">Client.</param>
+        /// <param name="serverClient">Client.</param>
         /// <param name="packet">Incoming packet with snapshots.</param>
         [HandlerAction(PacketType.SNAPSHOT)]
-        public void OnSnapshot(IWorldClient client, INetPacketStream packet)
+        public void OnSnapshot(IWorldServerClient serverClient, INetPacketStream packet)
         {
             var snapshotCount = packet.Read<byte>();
 
@@ -43,20 +43,20 @@ namespace Rhisis.World.Handlers
                 {
                     var snapshotHeader = (SnapshotType)snapshotHeaderNumber;
 
-                    this._handlerInvoker.Invoke(snapshotHeader, client, packet);
+                    _handlerInvoker.Invoke(snapshotHeader, serverClient, packet);
 
                 }
                 catch (ArgumentNullException)
                 {
                     if (Enum.IsDefined(typeof(SnapshotType), snapshotHeaderNumber))
-                        this._logger.LogWarning("Received an unimplemented World snapshot {0} (0x{1}) from {2}.", Enum.GetName(typeof(SnapshotType), snapshotHeaderNumber), snapshotHeaderNumber.ToString("X4"), client.RemoteEndPoint);
+                        _logger.LogWarning("Received an unimplemented World snapshot {0} (0x{1}) from {2}.", Enum.GetName(typeof(SnapshotType), snapshotHeaderNumber), snapshotHeaderNumber.ToString("X4"), serverClient.Socket.RemoteEndPoint);
                     else
-                        this._logger.LogWarning("[SECURITY] Received an unknown World snapshot 0x{0} from {1}.", snapshotHeaderNumber.ToString("X4"), client.RemoteEndPoint);
+                        _logger.LogWarning("[SECURITY] Received an unknown World snapshot 0x{0} from {1}.", snapshotHeaderNumber.ToString("X4"), serverClient.Socket.RemoteEndPoint);
                 }
                 catch (Exception exception)
                 {
-                    this._logger.LogError(exception, $"An error occured while handling a world snapshot.");
-                    this._logger.LogDebug(exception.InnerException?.StackTrace);
+                    _logger.LogError(exception, $"An error occured while handling a world snapshot.");
+                    _logger.LogDebug(exception.InnerException?.StackTrace);
                 }
 
                 snapshotCount--;

@@ -1,4 +1,4 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.World.Trade
 {
@@ -12,7 +12,7 @@ namespace Rhisis.Network.Packets.World.Trade
         /// <inheritdoc />
         public void Deserialize(INetPacketStream packet)
         {
-            this.TargetId = packet.Read<uint>();
+            TargetId = packet.Read<uint>();
         }
     }
 }

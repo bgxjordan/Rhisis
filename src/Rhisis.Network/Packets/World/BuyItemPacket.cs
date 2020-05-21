@@ -1,4 +1,4 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.World
 {
@@ -7,30 +7,30 @@ namespace Rhisis.Network.Packets.World
         /// <summary>
         /// Gets the tab.
         /// </summary>
-        public byte Tab { get; set; }
+        public byte Tab { get; private set; }
 
         /// <summary>
         /// Gets the slot of the item.
         /// </summary>
-        public byte Slot { get; set; }
+        public byte Slot { get; private set; }
 
         /// <summary>
         /// Gets the quantity of items.
         /// </summary>
-        public short Quantity { get; set; }
+        public short Quantity { get; private set; }
 
         /// <summary>
         /// Gets the Item Id.
         /// </summary>
-        public int ItemId { get; set; }
+        public int ItemId { get; private set; }
 
         /// <inheritdoc />
         public void Deserialize(INetPacketStream packet)
         {
-            this.Tab = packet.Read<byte>();
-            this.Slot = packet.Read<byte>();
-            this.Quantity = packet.Read<short>();
-            this.ItemId = packet.Read<int>();
+            Tab = packet.Read<byte>();
+            Slot = packet.Read<byte>();
+            Quantity = packet.Read<short>();
+            ItemId = packet.Read<int>();
         }
     }
 }

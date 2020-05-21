@@ -1,21 +1,18 @@
-﻿using Ether.Network.Packets;
+﻿using Sylver.Network.Data;
 
 namespace Rhisis.Network.Packets.World
 {
-    /// <summary>
-    /// Defines the <see cref="OpenShopWindowPacket"/> packet structure.
-    /// </summary>
     public class OpenShopWindowPacket : IPacketDeserializer
     {
         /// <summary>
         /// Gets the selected object id.
         /// </summary>
-        public uint ObjectId { get; set; }
+        public uint ObjectId { get; private set; }
 
         /// <inheritdoc />
         public void Deserialize(INetPacketStream packet)
         {
-            this.ObjectId = packet.Read<uint>();
+            ObjectId = packet.Read<uint>();
         }
     }
 }

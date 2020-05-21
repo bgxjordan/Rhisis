@@ -1,15 +1,13 @@
 ﻿using Microsoft.Extensions.Logging;
-using Rhisis.Core.Common;
+using Rhisis.Core.Data;
 using Rhisis.Network.Packets;
 using Rhisis.Network.Packets.World;
 using Rhisis.World.Client;
 using Rhisis.World.Game.Entities;
 using Rhisis.World.Game.Structures;
-using Rhisis.World.Packets;
 using Rhisis.World.Systems.Battle;
-using Rhisis.World.Systems.Follow;
-using Rhisis.World.Systems.Inventory;
 using Sylver.HandlerInvoker.Attributes;
+using System;
 
 namespace Rhisis.World.Handlers
 {
@@ -18,59 +16,91 @@ namespace Rhisis.World.Handlers
     {
         private readonly ILogger<BattleHandler> _logger;
         private readonly IBattleSystem _battleSystem;
-        private readonly IFollowSystem _followSystem;
-        private readonly IMoverPacketFactory _moverPacketFactory;
 
         /// <summary>
         /// Creates a new <see cref="BattleHandler"/> instance.
         /// </summary>
         /// <param name="logger">Logger.</param>
         /// <param name="battleSystem">Battle system.</param>
-        /// <param name="moverPacketFactory">Mover packet factory.</param>
-        public BattleHandler(ILogger<BattleHandler> logger, IBattleSystem battleSystem, IFollowSystem followSystem, IMoverPacketFactory moverPacketFactory)
+        public BattleHandler(ILogger<BattleHandler> logger, IBattleSystem battleSystem)
         {
-            this._logger = logger;
-            this._battleSystem = battleSystem;
-            this._followSystem = followSystem;
-            this._moverPacketFactory = moverPacketFactory;
+            _logger = logger;
+            _battleSystem = battleSystem;
         }
 
         /// <summary>
         /// On melee attack.
         /// </summary>
-        /// <param name="client">Client.</param>
+        /// <param name="serverClient">Client.</param>
         /// <param name="packet">Incoming packet.</param>
         [HandlerAction(PacketType.MELEE_ATTACK)]
-        public void OnMeleeAttack(IWorldClient client, MeleeAttackPacket packet)
+        public void OnMeleeAttack(IWorldServerClient serverClient, MeleeAttackPacket packet)
         {
-            var target = client.Player.FindEntity<IMonsterEntity>(packet.ObjectId);
+            var target = serverClient.Player.FindEntity<IMonsterEntity>(packet.ObjectId);
 
             if (target == null)
             {
-                this._logger.LogError($"Cannot find target with object id {packet.ObjectId}");
+                _logger.LogError($"Cannot find target with object id {packet.ObjectId}");
                 return;
             }
 
-            Item weaponItem = client.Player.Inventory.GetItem(x => x.Slot == InventorySystem.RightWeaponSlot) ?? InventorySystem.Hand;
+            Item weaponItem = serverClient.Player.Inventory.GetEquipedItem(ItemPartType.RightWeapon) ?? serverClient.Player.Hand;
 
             if (weaponItem != null && weaponItem.Data?.AttackSpeed != packet.WeaponAttackSpeed)
             {
-                this._logger.LogCritical($"Player {client.Player.Object.Name} has changed his weapon speed.");
+                _logger.LogCritical($"Player {serverClient.Player.Object.Name} has changed his weapon speed.");
                 return;
             }
 
-            if (!target.Follow.IsFollowing && target.Type == WorldEntityType.Monster)
-            {
-                if (target.Moves.SpeedFactor != 2f)
-                {
-                    target.Moves.SpeedFactor = 2f;
-                    this._moverPacketFactory.SendSpeedFactor(target, target.Moves.SpeedFactor);
-                }
+            _battleSystem.MeleeAttack(serverClient.Player, target, packet.AttackMessage, packet.WeaponAttackSpeed);
+        }
 
-                this._followSystem.Follow(target, client.Player);
+        /// <summary>
+        /// On magic attack.
+        /// </summary>
+        /// <param name="serverClient">Current client.</param>
+        /// <param name="packet">Magic attack incoming packet.</param>
+        [HandlerAction(PacketType.MAGIC_ATTACK)]
+        public void OnMagicAttack(IWorldServerClient serverClient, MagicAttackPacket packet)
+        {
+            var target = serverClient.Player.FindEntity<IMonsterEntity>(packet.TargetObjectId);
+
+            if (target == null)
+            {
+                _logger.LogError($"Cannot find target with object id {packet.TargetObjectId}");
+                return;
             }
 
-            this._battleSystem.MeleeAttack(client.Player, target, packet.AttackMessage, packet.WeaponAttackSpeed);
+            if (packet.MagicPower < 0)
+            {
+                _logger.LogWarning($"Magic attack power cannot be less than 0.");
+            }
+
+            _battleSystem.MagicAttack(serverClient.Player, target, packet.AttackMessage, Math.Max(0, packet.MagicPower));
+        }
+
+        /// <summary>
+        /// On ranged attack.
+        /// </summary>
+        /// <param name="serverClient">Current client.</param>
+        /// <param name="packet">Range attack incoming packet.</param>
+        [HandlerAction(PacketType.RANGE_ATTACK)]
+        public void OnRangeAttack(IWorldServerClient serverClient, RangeAttackPacket packet)
+        {
+            var target = serverClient.Player.FindEntity<IMonsterEntity>(packet.ObjectId);
+
+            if (target == null)
+            {
+                _logger.LogError($"Cannot find target with object id {packet.ObjectId}");
+                return;
+            }
+
+            if (packet.Power < 0)
+            {
+                _logger.LogWarning($"Range attack power cannot be less than 0.");
+            }
+
+            _battleSystem.RangeAttack(serverClient.Player, target, packet.AttackMessage, Math.Max(0, packet.Power));
         }
     }
 }

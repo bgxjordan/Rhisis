@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Rhisis.Core.Data;
 using Rhisis.Core.Structures.Game;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -20,41 +22,61 @@ namespace Rhisis.Core.Resources.Loaders
         /// <param name="cache">Application memory cache.</param>
         public JobLoader(ILogger<JobLoader> logger, IMemoryCache cache)
         {
-            this._logger = logger;
-            this._cache = cache;
-            this._defines = this._cache.Get<IDictionary<string, int>>(GameResourcesConstants.Defines);
+            _logger = logger;
+            _cache = cache;
+            _defines = _cache.Get<IDictionary<string, int>>(GameResourcesConstants.Defines);
         }
 
         /// <inheritdoc />
         public void Load()
         {
             string propJobFile = GameResourcesConstants.Paths.JobPropPath;
+            string jobsDefinitionFile = GameResourcesConstants.Paths.JobsDefinitionsPath;
 
             if (!File.Exists(propJobFile))
             {
-                this._logger.LogWarning($"Unable to load job properties. Reason: cannot find '{propJobFile}' file.");
+                _logger.LogWarning($"Unable to load job properties. Reason: cannot find '{propJobFile}' file.");
                 return;
             }
 
-            var jobData = new ConcurrentDictionary<int, JobData>();
-            using (var propJob = new ResourceTableFile(propJobFile, -1, new [] { '\t', ' ', '\r' }, this._defines, null))
+            if (!File.Exists(jobsDefinitionFile))
             {
-                var jobs = propJob.GetRecords<JobData>();
+                _logger.LogWarning($"Unable to load job definitions. Reason: cannot find '{jobsDefinitionFile}' file.");
+                return;
+            }
 
-                foreach (var job in jobs)
+            string jobDefinitionFileContent = File.ReadAllText(jobsDefinitionFile);
+            var jobDefinitions = JsonConvert.DeserializeObject<Dictionary<DefineJob.Job, JobDefinitionData>>(jobDefinitionFileContent);
+            var jobData = new ConcurrentDictionary<DefineJob.Job, JobData>();
+
+            using (var propJob = new ResourceTableFile(propJobFile, -1, new [] { '\t', ' ', '\r' }, _defines, null))
+            {
+                IEnumerable<JobData> jobs = propJob.GetRecords<JobData>();
+
+                foreach (JobData job in jobs)
                 {
-                    if (jobData.ContainsKey(job.Id))
+                    if (!jobData.TryAdd(job.Id, job))
                     {
-                        jobData[job.Id] = job;
-                        this._logger.LogWarning(GameResourcesConstants.Errors.ObjectOverridedMessage, "JobData", job.Id, "already delcared");
+                        _logger.LogWarning(GameResourcesConstants.Errors.ObjectOverridedMessage, "JobData", job.Id, "already delcared");
+                    }
+                }
+
+                foreach (JobData job in jobData.Values)
+                {
+                    if (jobDefinitions.TryGetValue(job.Id, out JobDefinitionData jobDefinition))
+                    {
+                        job.Parent = jobDefinition.Parent.HasValue ? jobData[jobDefinition.Parent.Value] : null;
+                        job.Type = jobDefinition.Type;
                     }
                     else
-                        jobData.TryAdd(job.Id, job);
+                    {
+                        _logger.LogWarning($"Cannot find job '{job.Id}' definition.");
+                    }
                 }
             }
 
-            this._cache.Set(GameResourcesConstants.Jobs, jobData);
-            this._logger.LogInformation($"-> {jobData.Count} jobs data loaded.");
+            _cache.Set(GameResourcesConstants.Jobs, jobData);
+            _logger.LogInformation($"-> {jobData.Count} jobs data loaded.");
         }
     }
 }

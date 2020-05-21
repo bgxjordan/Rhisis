@@ -1,20 +1,12 @@
 ﻿using Rhisis.Core.Structures.Game;
-using Rhisis.Database.Entities;
+using Rhisis.World.Game;
 using Rhisis.World.Game.Entities;
 using Rhisis.World.Game.Structures;
-using System.Collections.Generic;
 
 namespace Rhisis.World.Systems.Inventory
 {
-    public interface IInventorySystem
+    public interface IInventorySystem : IGameSystemLifeCycle
     {
-        /// <summary>
-        /// Initialize the player's inventory.
-        /// </summary>
-        /// <param name="player">Current player.</param>
-        /// <param name="items">Player's inventory items.</param>
-        void InitializeInventory(IPlayerEntity player, IEnumerable<DbItem> items);
-
         /// <summary>
         /// Creates an item in player's inventory.
         /// </summary>
@@ -61,7 +53,8 @@ namespace Rhisis.World.Systems.Inventory
         /// <param name="player">Current player.</param>
         /// <param name="itemUniqueId">Equip player unique id.</param>
         /// <param name="equipPart">Equip part.</param>
-        void EquipItem(IPlayerEntity player, int itemUniqueId, int equipPart);
+        /// <returns>True if the equip/unequip operation has succeeded, false otherwise.</returns>
+        bool EquipItem(IPlayerEntity player, int itemUniqueId, int equipPart);
 
         /// <summary>
         /// Uses an item from player's inventory.
@@ -70,6 +63,20 @@ namespace Rhisis.World.Systems.Inventory
         /// <param name="itemUniqueId">Unique id of the item to use.</param>
         /// <param name="part">Item part.</param>
         void UseItem(IPlayerEntity player, int itemUniqueId, int part);
+
+        /// <summary>
+        /// Uses a system item from player's inventory.
+        /// </summary>
+        /// <param name="player">Current player.</param>
+        /// <param name="systemItem">System item to use.</param>
+        void UseSystemItem(IPlayerEntity player, Item systemItem);
+
+        /// <summary>
+        /// Uses a scroll item from player's inventory.
+        /// </summary>
+        /// <param name="player">Current player.</param>
+        /// <param name="scrollItem">Scroll item to use.</param>
+        void UseScrollItem(IPlayerEntity player, Item scrollItem);
 
         /// <summary>
         /// Drops an item from player's inventory to the ground.

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Rhisis.Core.Data;
 using Rhisis.Core.DependencyInjection;
 using Rhisis.Core.Helpers;
 using Rhisis.Core.IO;
@@ -17,24 +18,28 @@ namespace Rhisis.World.Systems
         /// <param name="logger">Logger.</param>
         public RespawnSystem(ILogger<RespawnSystem> logger)
         {
-            this._logger = logger;
+            _logger = logger;
         }
 
         /// <inheritdoc />
         public void Execute(IWorldEntity entity)
         {
-            if (entity is IMonsterEntity monster && monster.Health.IsDead)
+            if (entity is IMonsterEntity monster && monster.IsDead)
             {
                 if (monster.Object.Spawned && monster.Timers.DespawnTime < Time.TimeInSeconds())
                 {
-                    this._logger.LogDebug($"Despawning {monster.Object.Name}...");
+                    _logger.LogDebug($"Despawning {monster.Object.Name}...");
                     monster.Object.Spawned = false;
-                    monster.Timers.RespawnTime = Time.TimeInSeconds() + monster.Region.Time;
+                    
+                    if (!monster.Object.AbleRespawn)
+                    {
+                        monster.Timers.RespawnTime = Time.TimeInSeconds() + monster.Region.Time;
+                    }
                 }
-                else if (!monster.Object.Spawned && monster.Timers.RespawnTime < Time.TimeInSeconds())
+                else if (!monster.Object.Spawned && monster.Timers.RespawnTime < Time.TimeInSeconds() && !monster.Object.AbleRespawn)
                 {
-                    this._logger.LogDebug($"Respawning {monster.Object.Name}...");
-                    this.ResetMonster(monster);
+                    _logger.LogDebug($"Respawning {monster.Object.Name}...");
+                    ResetMonster(monster);
                 }
             }
 
@@ -42,12 +47,12 @@ namespace Rhisis.World.Systems
             {
                 if (dropItem.Drop.HasOwner && dropItem.Drop.OwnershipTime <= Time.TimeInSeconds())
                 {
-                    this.ResetDropOwnership(dropItem);
+                    ResetDropOwnership(dropItem);
                 }
 
                 if (dropItem.Drop.IsTemporary && dropItem.Drop.DespawnTime <= Time.TimeInSeconds())
                 {
-                    this.ResetDropOwnership(dropItem);
+                    ResetDropOwnership(dropItem);
                     dropItem.Object.Spawned = false;
                     dropItem.Delete();
                 }
@@ -69,10 +74,13 @@ namespace Rhisis.World.Systems
             monster.Timers.NextMoveTime = Time.TimeInSeconds() + RandomHelper.LongRandom(5, 15);
             monster.Object.Spawned = true;
             monster.Object.Position = monster.Region.GetRandomPosition();
-            monster.Moves.DestinationPosition = monster.Object.Position.Clone();
+            monster.Object.MovingFlags = ObjectState.OBJSTA_STAND;
+            monster.Moves.DestinationPosition.Reset();
             monster.Moves.SpeedFactor = 1;
-            monster.Health.Hp = monster.Data.AddHp;
-            monster.Health.Mp = monster.Data.AddMp;
+            monster.Battle.Reset();
+            monster.Follow.Reset();
+            monster.Attributes[DefineAttributes.HP] = monster.Data.AddHp;
+            monster.Attributes[DefineAttributes.MP] = monster.Data.AddMp;
         }
 
         /// <summary>

@@ -1,5 +1,5 @@
-﻿using Ether.Network.Server;
-using Rhisis.World.Game.Entities;
+﻿using Rhisis.World.Game.Entities;
+using Sylver.Network.Server;
 
 namespace Rhisis.World
 {
@@ -25,5 +25,11 @@ namespace Rhisis.World
         /// <param name="id">Character id.</param>
         /// <returns><see cref="IPlayerEntity"/></returns>
         IPlayerEntity GetPlayerEntityByCharacterId(uint id);
+
+        /// <summary>
+        /// Gets the number of players connected to the worldserver.
+        /// </summary>
+        /// <returns><see cref="uint"/></returns>
+        uint GetOnlineConnectedPlayerNumber();
     }
 }
